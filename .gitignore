@@ -1,5 +1,6 @@
 # Maven build output
 target/
+*.class
 
 # IDE files
 .idea/
@@ -8,10 +9,14 @@ target/
 .project
 .classpath
 .settings/
+.eclipse/
 
 # OS files
 .DS_Store
 Thumbs.db
+
+# Maven
+dependency-reduced-pom.xml
 
 # Logs
 *.log

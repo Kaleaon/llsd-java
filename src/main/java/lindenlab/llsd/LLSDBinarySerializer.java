@@ -1,342 +1,237 @@
 /*
- * LLSDJ - LLSD in Java example
+ * LLSDJ - LLSD in Java implementation
  *
- * Copyright(C) 2008 University of St. Andrews
- * Updated 2024 based on Second Life viewer and LibreMetaverse implementations
+ * Copyright(C) 2024 - Modernized implementation
  */
 
 package lindenlab.llsd;
 
-import java.io.*;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.text.SimpleDateFormat;
-import java.util.*;
+import java.nio.charset.StandardCharsets;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
- * LLSD Binary format serializer
- * Basic implementation of binary LLSD format
+ * Serializer for LLSD documents to Binary format.
+ * 
+ * <p>This serializer converts LLSD objects into binary-formatted documents using
+ * the efficient binary LLSD protocol.</p>
+ * 
+ * @since 1.0
+ * @see LLSD
+ * @see LLSDBinaryParser
  */
-public class LLSDBinarySerializer extends LLSDSerializer {
-    
-    // Binary format markers
-    private static final byte UNDEF_MARKER = '!';
-    private static final byte FALSE_MARKER = '0';
-    private static final byte TRUE_MARKER = '1';
-    private static final byte INTEGER_MARKER = 'i';
-    private static final byte REAL_MARKER = 'r';
-    private static final byte UUID_MARKER = 'u';
-    private static final byte BINARY_MARKER = 'b';
-    private static final byte STRING_MARKER = 's';
-    private static final byte URI_MARKER = 'l';
-    private static final byte DATE_MARKER = 'd';
-    private static final byte ARRAY_MARKER = '[';
-    private static final byte ARRAY_END_MARKER = ']';
-    private static final byte MAP_MARKER = '{';
-    private static final byte MAP_END_MARKER = '}';
-    private static final byte KEY_MARKER = 'k';
-    
-    private final SimpleDateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-    
-    public LLSDBinarySerializer() {
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
-    }
-    
-    @Override
-    public LLSDFormat getFormat() {
-        return LLSDFormat.BINARY;
-    }
-    
-    @Override
-    public void serialize(LLSD llsd, OutputStream output) throws IOException, LLSDException {
-        // Write binary header
-        output.write("<? llsd/binary ?>\n".getBytes("UTF-8"));
-        serializeElement(output, llsd.getContent());
-    }
-    
+public class LLSDBinarySerializer {
+    private static final String LLSD_BINARY_HEADER = "<?llsd/binary?>";
+    private static final byte[] LLSD_BINARY_HEADER_BYTES = LLSD_BINARY_HEADER.getBytes(StandardCharsets.US_ASCII);
+
+    // Binary markers
+    private static final byte UNDEF_MARKER = (byte) '!';
+    private static final byte TRUE_MARKER = (byte) '1';
+    private static final byte FALSE_MARKER = (byte) '0';
+    private static final byte INTEGER_MARKER = (byte) 'i';
+    private static final byte REAL_MARKER = (byte) 'r';
+    private static final byte STRING_MARKER = (byte) 's';
+    private static final byte UUID_MARKER = (byte) 'u';
+    private static final byte DATE_MARKER = (byte) 'd';
+    private static final byte URI_MARKER = (byte) 'l';
+    private static final byte BINARY_MARKER = (byte) 'b';
+    private static final byte ARRAY_BEGIN_MARKER = (byte) '[';
+    private static final byte ARRAY_END_MARKER = (byte) ']';
+    private static final byte MAP_BEGIN_MARKER = (byte) '{';
+    private static final byte MAP_END_MARKER = (byte) '}';
+    private static final byte KEY_MARKER = (byte) 'k';
+
     /**
-     * Serialize LLSD to string
-     * @param llsd the LLSD object to serialize
-     * @return the serialized string
-     * @throws LLSDException if serialization fails
+     * Constructs a new LLSD Binary serializer.
      */
-    @Override
-    public String serializeToString(LLSD llsd) throws LLSDException {
-        try {
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            serialize(llsd, baos);
-            // For binary format as string, we return the actual binary data without encoding
-            // This allows proper format detection
-            return new String(baos.toByteArray(), "ISO-8859-1"); // Use ISO-8859-1 to preserve bytes
+    public LLSDBinarySerializer() {
+    }
+
+    /**
+     * Serializes an LLSD document to Binary format.
+     *
+     * @param llsd the LLSD document to serialize
+     * @param output the output stream to write binary data to
+     * @param includeHeader whether to include the binary LLSD header
+     * @throws IOException if there was a problem writing to the output stream
+     * @throws LLSDException if there was a problem serializing the LLSD data
+     */
+    public void serialize(LLSD llsd, OutputStream output, boolean includeHeader) 
+            throws IOException, LLSDException {
+        if (includeHeader) {
+            output.write(LLSD_BINARY_HEADER_BYTES);
+        }
+        serializeValue(llsd.getContent(), output);
+    }
+
+    /**
+     * Serializes an LLSD document to Binary format with header.
+     *
+     * @param llsd the LLSD document to serialize
+     * @param output the output stream to write binary data to
+     * @throws IOException if there was a problem writing to the output stream
+     * @throws LLSDException if there was a problem serializing the LLSD data
+     */
+    public void serialize(LLSD llsd, OutputStream output) throws IOException, LLSDException {
+        serialize(llsd, output, true);
+    }
+
+    /**
+     * Serializes an LLSD document to binary byte array.
+     *
+     * @param llsd the LLSD document to serialize
+     * @param includeHeader whether to include the binary LLSD header
+     * @return the serialized binary data
+     * @throws LLSDException if there was a problem serializing the LLSD data
+     */
+    public byte[] serialize(LLSD llsd, boolean includeHeader) throws LLSDException {
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            serialize(llsd, output, includeHeader);
+            return output.toByteArray();
         } catch (IOException e) {
-            throw new LLSDException("Error serializing to string", e);
+            throw new LLSDException("Failed to serialize binary LLSD", e);
         }
     }
-    
-    @Override
-    public LLSD deserialize(InputStream input) throws IOException, LLSDException {
-        // Skip binary header if present
-        BufferedInputStream bis = new BufferedInputStream(input);
-        bis.mark(20);
-        byte[] headerBytes = new byte[18];
-        int read = bis.read(headerBytes);
-        String header = new String(headerBytes, 0, read, "UTF-8");
-        if (!header.startsWith("<? llsd/binary ?>")) {
-            bis.reset();
-        }
-        
-        Object content = deserializeElement(bis);
-        return new LLSD(content);
+
+    /**
+     * Serializes an LLSD document to binary byte array with header.
+     *
+     * @param llsd the LLSD document to serialize
+     * @return the serialized binary data
+     * @throws LLSDException if there was a problem serializing the LLSD data
+     */
+    public byte[] serialize(LLSD llsd) throws LLSDException {
+        return serialize(llsd, true);
     }
-    
-    @Override
-    public LLSD deserializeFromString(String data) throws LLSDException {
-        try {
-            // For binary format, treat string as raw bytes
-            byte[] bytes = data.getBytes("ISO-8859-1");
-            ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
-            return deserialize(bais);
-        } catch (IOException e) {
-            throw new LLSDException("Error deserializing from string", e);
-        }
-    }
-    
-    private void serializeElement(OutputStream output, Object element) throws IOException, LLSDException {
-        if (element == null) {
+
+    private void serializeValue(Object value, OutputStream output) throws IOException, LLSDException {
+        if (value == null || (value instanceof String && ((String) value).isEmpty())) {
             output.write(UNDEF_MARKER);
             return;
         }
-        
-        if (element instanceof Boolean) {
-            output.write(((Boolean) element) ? TRUE_MARKER : FALSE_MARKER);
-        } else if (element instanceof Integer) {
-            output.write(INTEGER_MARKER);
-            writeInt(output, (Integer) element);
-        } else if (element instanceof Double) {
-            output.write(REAL_MARKER);
-            writeDouble(output, (Double) element);
-        } else if (element instanceof Float) {
-            output.write(REAL_MARKER);
-            writeDouble(output, ((Float) element).doubleValue());
-        } else if (element instanceof UUID) {
-            output.write(UUID_MARKER);
-            writeUUID(output, (UUID) element);
-        } else if (element instanceof String) {
-            output.write(STRING_MARKER);
-            writeString(output, (String) element);
-        } else if (element instanceof byte[]) {
-            output.write(BINARY_MARKER);
-            writeBinary(output, (byte[]) element);
-        } else if (element instanceof Date) {
-            output.write(DATE_MARKER);
-            writeDouble(output, ((Date) element).getTime() / 1000.0);
-        } else if (element instanceof URI) {
-            output.write(URI_MARKER);
-            writeString(output, element.toString());
-        } else if (element instanceof List) {
-            serializeArray(output, (List<?>) element);
-        } else if (element instanceof Map) {
-            serializeMap(output, (Map<String, ?>) element);
-        } else if (element instanceof LLSDUndefined) {
+
+        if (value instanceof Map) {
+            serializeMap(value, output);
+        } else if (value instanceof List) {
+            serializeArray(value, output);
+        } else if (value instanceof String) {
+            serializeString((String) value, output);
+        } else if (value instanceof Integer) {
+            serializeInteger((Integer) value, output);
+        } else if (value instanceof Double) {
+            serializeReal((Double) value, output);
+        } else if (value instanceof Boolean) {
+            serializeBoolean((Boolean) value, output);
+        } else if (value instanceof Date) {
+            serializeDate((Date) value, output);
+        } else if (value instanceof URI) {
+            serializeURI((URI) value, output);
+        } else if (value instanceof UUID) {
+            serializeUUID((UUID) value, output);
+        } else if (value instanceof byte[]) {
+            serializeBinary((byte[]) value, output);
+        } else if (value instanceof LLSDUndefined) {
             output.write(UNDEF_MARKER);
         } else {
-            throw new LLSDException("Cannot serialize type: " + element.getClass().getName());
+            // Fallback to string representation
+            serializeString(value.toString(), output);
         }
     }
-    
-    private void serializeArray(OutputStream output, List<?> array) throws IOException, LLSDException {
-        output.write(ARRAY_MARKER);
-        writeInt(output, array.size());
-        for (Object element : array) {
-            serializeElement(output, element);
-        }
-        output.write(ARRAY_END_MARKER);
+
+    private void serializeBoolean(Boolean value, OutputStream output) throws IOException {
+        output.write(value ? TRUE_MARKER : FALSE_MARKER);
     }
-    
-    private void serializeMap(OutputStream output, Map<String, ?> map) throws IOException, LLSDException {
-        output.write(MAP_MARKER);
-        writeInt(output, map.size());
-        for (Map.Entry<String, ?> entry : map.entrySet()) {
-            output.write(KEY_MARKER);
-            writeString(output, entry.getKey());
-            serializeElement(output, entry.getValue());
-        }
-        output.write(MAP_END_MARKER);
-    }
-    
-    private Object deserializeElement(InputStream input) throws IOException, LLSDException {
-        int marker = input.read();
-        if (marker == -1) {
-            throw new LLSDException("Unexpected end of stream");
-        }
-        
-        switch ((byte) marker) {
-            case UNDEF_MARKER:
-                return null;
-            case FALSE_MARKER:
-                return Boolean.FALSE;
-            case TRUE_MARKER:
-                return Boolean.TRUE;
-            case INTEGER_MARKER:
-                return readInt(input);
-            case REAL_MARKER:
-                return readDouble(input);
-            case UUID_MARKER:
-                return readUUID(input);
-            case BINARY_MARKER:
-                return readBinary(input);
-            case STRING_MARKER:
-                return readString(input);
-            case URI_MARKER:
-                return readURI(input);
-            case DATE_MARKER:
-                return readDate(input);
-            case ARRAY_MARKER:
-                return deserializeArray(input);
-            case MAP_MARKER:
-                return deserializeMap(input);
-            default:
-                throw new LLSDException("Unknown binary marker: " + (char) marker);
-        }
-    }
-    
-    private List<Object> deserializeArray(InputStream input) throws IOException, LLSDException {
-        int size = readInt(input);
-        List<Object> array = new ArrayList<>(size);
-        
-        for (int i = 0; i < size; i++) {
-            array.add(deserializeElement(input));
-        }
-        
-        // Read end marker
-        int endMarker = input.read();
-        if (endMarker != ARRAY_END_MARKER) {
-            throw new LLSDException("Expected array end marker");
-        }
-        
-        return array;
-    }
-    
-    private Map<String, Object> deserializeMap(InputStream input) throws IOException, LLSDException {
-        int size = readInt(input);
-        Map<String, Object> map = new HashMap<>(size);
-        
-        for (int i = 0; i < size; i++) {
-            // Read key marker
-            int keyMarker = input.read();
-            if (keyMarker != KEY_MARKER) {
-                throw new LLSDException("Expected key marker in map");
-            }
-            
-            String key = readString(input);
-            Object value = deserializeElement(input);
-            map.put(key, value);
-        }
-        
-        // Read end marker
-        int endMarker = input.read();
-        if (endMarker != MAP_END_MARKER) {
-            throw new LLSDException("Expected map end marker");
-        }
-        
-        return map;
-    }
-    
-    private void writeInt(OutputStream output, int value) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(4);
-        buffer.order(ByteOrder.BIG_ENDIAN);
+
+    private void serializeInteger(Integer value, OutputStream output) throws IOException {
+        output.write(INTEGER_MARKER);
+        ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN);
         buffer.putInt(value);
         output.write(buffer.array());
     }
-    
-    private int readInt(InputStream input) throws IOException, LLSDException {
-        byte[] bytes = new byte[4];
-        if (input.read(bytes) != 4) {
-            throw new LLSDException("Unexpected end of stream reading integer");
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        buffer.order(ByteOrder.BIG_ENDIAN);
-        return buffer.getInt();
-    }
-    
-    private void writeDouble(OutputStream output, double value) throws IOException {
-        ByteBuffer buffer = ByteBuffer.allocate(8);
-        buffer.order(ByteOrder.BIG_ENDIAN);
+
+    private void serializeReal(Double value, OutputStream output) throws IOException {
+        output.write(REAL_MARKER);
+        ByteBuffer buffer = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
         buffer.putDouble(value);
         output.write(buffer.array());
     }
-    
-    private double readDouble(InputStream input) throws IOException, LLSDException {
-        byte[] bytes = new byte[8];
-        if (input.read(bytes) != 8) {
-            throw new LLSDException("Unexpected end of stream reading double");
-        }
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        buffer.order(ByteOrder.BIG_ENDIAN);
-        return buffer.getDouble();
+
+    private void serializeString(String value, OutputStream output) throws IOException {
+        output.write(STRING_MARKER);
+        byte[] stringBytes = value.getBytes(StandardCharsets.UTF_8);
+        writeInt32(output, stringBytes.length);
+        output.write(stringBytes);
     }
-    
-    private void writeUUID(OutputStream output, UUID uuid) throws IOException {
+
+    private void serializeUUID(UUID value, OutputStream output) throws IOException {
+        output.write(UUID_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(16);
-        buffer.order(ByteOrder.BIG_ENDIAN);
-        buffer.putLong(uuid.getMostSignificantBits());
-        buffer.putLong(uuid.getLeastSignificantBits());
+        buffer.putLong(value.getMostSignificantBits());
+        buffer.putLong(value.getLeastSignificantBits());
         output.write(buffer.array());
     }
-    
-    private UUID readUUID(InputStream input) throws IOException, LLSDException {
-        byte[] bytes = new byte[16];
-        if (input.read(bytes) != 16) {
-            throw new LLSDException("Unexpected end of stream reading UUID");
+
+    private void serializeDate(Date value, OutputStream output) throws IOException {
+        output.write(DATE_MARKER);
+        double secondsSinceEpoch = value.getTime() / 1000.0;
+        ByteBuffer buffer = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
+        buffer.putDouble(secondsSinceEpoch);
+        output.write(buffer.array());
+    }
+
+    private void serializeURI(URI value, OutputStream output) throws IOException {
+        output.write(URI_MARKER);
+        byte[] uriBytes = value.toString().getBytes(StandardCharsets.UTF_8);
+        writeInt32(output, uriBytes.length);
+        output.write(uriBytes);
+    }
+
+    private void serializeBinary(byte[] value, OutputStream output) throws IOException {
+        output.write(BINARY_MARKER);
+        writeInt32(output, value.length);
+        output.write(value);
+    }
+
+    @SuppressWarnings("unchecked")
+    private void serializeArray(Object value, OutputStream output) throws IOException, LLSDException {
+        List<Object> list = (List<Object>) value;
+        
+        output.write(ARRAY_BEGIN_MARKER);
+        for (Object item : list) {
+            serializeValue(item, output);
         }
-        ByteBuffer buffer = ByteBuffer.wrap(bytes);
-        buffer.order(ByteOrder.BIG_ENDIAN);
-        long mostSig = buffer.getLong();
-        long leastSig = buffer.getLong();
-        return new UUID(mostSig, leastSig);
+        output.write(ARRAY_END_MARKER);
     }
-    
-    private void writeString(OutputStream output, String str) throws IOException {
-        byte[] bytes = str.getBytes("UTF-8");
-        writeInt(output, bytes.length);
-        output.write(bytes);
-    }
-    
-    private String readString(InputStream input) throws IOException, LLSDException {
-        int length = readInt(input);
-        byte[] bytes = new byte[length];
-        if (input.read(bytes) != length) {
-            throw new LLSDException("Unexpected end of stream reading string");
+
+    @SuppressWarnings("unchecked")
+    private void serializeMap(Object value, OutputStream output) throws IOException, LLSDException {
+        Map<String, Object> map = (Map<String, Object>) value;
+        
+        output.write(MAP_BEGIN_MARKER);
+        for (Map.Entry<String, Object> entry : map.entrySet()) {
+            // Write key
+            output.write(KEY_MARKER);
+            byte[] keyBytes = entry.getKey().getBytes(StandardCharsets.UTF_8);
+            writeInt32(output, keyBytes.length);
+            output.write(keyBytes);
+            
+            // Write value
+            serializeValue(entry.getValue(), output);
         }
-        return new String(bytes, "UTF-8");
+        output.write(MAP_END_MARKER);
     }
-    
-    private void writeBinary(OutputStream output, byte[] data) throws IOException {
-        writeInt(output, data.length);
-        output.write(data);
-    }
-    
-    private byte[] readBinary(InputStream input) throws IOException, LLSDException {
-        int length = readInt(input);
-        byte[] bytes = new byte[length];
-        if (input.read(bytes) != length) {
-            throw new LLSDException("Unexpected end of stream reading binary");
-        }
-        return bytes;
-    }
-    
-    private URI readURI(InputStream input) throws IOException, LLSDException {
-        String uriStr = readString(input);
-        try {
-            return new URI(uriStr);
-        } catch (Exception e) {
-            throw new LLSDException("Invalid URI: " + uriStr, e);
-        }
-    }
-    
-    private Date readDate(InputStream input) throws IOException, LLSDException {
-        double timestamp = readDouble(input);
-        return new Date((long) (timestamp * 1000));
+
+    private void writeInt32(OutputStream output, int value) throws IOException {
+        ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN);
+        buffer.putInt(value);
+        output.write(buffer.array());
     }
 }

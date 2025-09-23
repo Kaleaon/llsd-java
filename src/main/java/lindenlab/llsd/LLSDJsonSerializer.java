@@ -19,44 +19,39 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 /**
- * Serializer for LLSD documents to Notation format.
+ * Serializer for LLSD documents to JSON format.
  * 
- * <p>This serializer converts LLSD objects into notation-formatted documents using
- * the compact LLSD notation syntax.</p>
+ * <p>This serializer converts LLSD objects into JSON-formatted documents using
+ * the LLSD JSON conventions for special data types.</p>
  * 
- * <p>Notation format output examples:
+ * <p>JSON LLSD format conventions:
  * <ul>
- * <li>Boolean: {@code 1} (true), {@code 0} (false)</li>
- * <li>Integer: {@code i42}</li>
- * <li>Real: {@code r3.14159}</li>
- * <li>String: {@code s'hello world'}</li>
- * <li>UUID: {@code u550e8400-e29b-41d4-a716-446655440000}</li>
- * <li>Date: {@code d2024-01-01T00:00:00Z}</li>
- * <li>URI: {@code lhttp://example.com}</li>
- * <li>Binary: {@code b64"SGVsbG8="}</li>
- * <li>Array: {@code [i1,i2,i3]}</li>
- * <li>Map: {@code {key:s'value',num:i42}}</li>
+ * <li>Dates: {"d":"2024-01-01T00:00:00Z"}</li>
+ * <li>URIs: {"u":"http://example.com"}</li>
+ * <li>UUIDs: {"i":"550e8400-e29b-41d4-a716-446655440000"}</li>
+ * <li>Binary data: {"b":"SGVsbG8gV29ybGQ="}</li>
+ * <li>Undefined values: null</li>
  * </ul></p>
  * 
  * @since 1.0
  * @see LLSD
- * @see LLSDNotationParser
+ * @see LLSDJsonParser
  */
-public class LLSDNotationSerializer {
+public class LLSDJsonSerializer {
     private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
-     * Constructs a new LLSD Notation serializer.
+     * Constructs a new LLSD JSON serializer.
      */
-    public LLSDNotationSerializer() {
+    public LLSDJsonSerializer() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Serializes an LLSD document to Notation format.
+     * Serializes an LLSD document to JSON format.
      *
      * @param llsd the LLSD document to serialize
-     * @param writer the writer to output notation to
+     * @param writer the writer to output JSON to
      * @throws IOException if there was a problem writing to the writer
      * @throws LLSDException if there was a problem serializing the LLSD data
      */
@@ -65,11 +60,11 @@ public class LLSDNotationSerializer {
     }
 
     /**
-     * Serializes a single LLSD value to notation.
+     * Serializes a single LLSD value to JSON.
      */
     private void serializeValue(Object value, Writer writer) throws IOException, LLSDException {
         if (value == null || (value instanceof String && ((String) value).isEmpty())) {
-            writer.write("!");
+            writer.write("null");
             return;
         }
 
@@ -80,33 +75,36 @@ public class LLSDNotationSerializer {
         } else if (value instanceof String) {
             serializeString((String) value, writer);
         } else if (value instanceof Integer) {
-            writer.write("i");
             writer.write(value.toString());
         } else if (value instanceof Double) {
             Double d = (Double) value;
-            writer.write("r");
             if (d.isNaN()) {
-                writer.write("nan");
+                writer.write("\"NaN\""); // Special case for NaN
             } else if (d.isInfinite()) {
-                writer.write(d > 0 ? "inf" : "-inf");
+                writer.write(d > 0 ? "\"Infinity\"" : "\"-Infinity\"");
             } else {
                 writer.write(d.toString());
             }
         } else if (value instanceof Boolean) {
-            writer.write(((Boolean) value) ? "1" : "0");
+            writer.write(value.toString());
         } else if (value instanceof Date) {
-            writer.write("d");
+            writer.write("{\"d\":\"");
             writer.write(iso8601Format.format((Date) value));
+            writer.write("\"}");
         } else if (value instanceof URI) {
-            writer.write("l");
-            writer.write(value.toString());
+            writer.write("{\"u\":");
+            serializeString(value.toString(), writer);
+            writer.write("}");
         } else if (value instanceof UUID) {
-            writer.write("u");
-            writer.write(value.toString());
+            writer.write("{\"i\":");
+            serializeString(value.toString(), writer);
+            writer.write("}");
         } else if (value instanceof byte[]) {
-            serializeBinary((byte[]) value, writer);
+            writer.write("{\"b\":");
+            serializeString(Base64.getEncoder().encodeToString((byte[]) value), writer);
+            writer.write("}");
         } else if (value instanceof LLSDUndefined) {
-            writer.write("!");
+            writer.write("null");
         } else {
             // Fallback to string representation
             serializeString(value.toString(), writer);
@@ -125,14 +123,7 @@ public class LLSDNotationSerializer {
             }
             first = false;
             
-            // Serialize key
-            String key = entry.getKey();
-            if (isValidIdentifier(key)) {
-                writer.write(key);
-            } else {
-                serializeString(key, writer);
-            }
-            
+            serializeString(entry.getKey(), writer);
             writer.write(":");
             serializeValue(entry.getValue(), writer);
         }
@@ -157,16 +148,21 @@ public class LLSDNotationSerializer {
     }
 
     private void serializeString(String str, Writer writer) throws IOException {
-        writer.write("s'");
-        // Escape single quotes and backslashes
+        writer.write("\"");
         for (int i = 0; i < str.length(); i++) {
             char c = str.charAt(i);
             switch (c) {
-                case '\'':
-                    writer.write("\\'");
+                case '"':
+                    writer.write("\\\"");
                     break;
                 case '\\':
                     writer.write("\\\\");
+                    break;
+                case '\b':
+                    writer.write("\\b");
+                    break;
+                case '\f':
+                    writer.write("\\f");
                     break;
                 case '\n':
                     writer.write("\\n");
@@ -178,39 +174,14 @@ public class LLSDNotationSerializer {
                     writer.write("\\t");
                     break;
                 default:
-                    writer.write(c);
+                    if (c < 0x20 || c > 0x7e) {
+                        writer.write(String.format("\\u%04x", (int) c));
+                    } else {
+                        writer.write(c);
+                    }
                     break;
             }
         }
-        writer.write("'");
-    }
-
-    private void serializeBinary(byte[] data, Writer writer) throws IOException {
-        writer.write("b64\"");
-        writer.write(Base64.getEncoder().encodeToString(data));
         writer.write("\"");
-    }
-
-    /**
-     * Checks if a string is a valid identifier (can be used as an unquoted map key).
-     */
-    private boolean isValidIdentifier(String str) {
-        if (str.isEmpty()) {
-            return false;
-        }
-        
-        char first = str.charAt(0);
-        if (!Character.isLetter(first) && first != '_') {
-            return false;
-        }
-        
-        for (int i = 1; i < str.length(); i++) {
-            char c = str.charAt(i);
-            if (!Character.isLetterOrDigit(c) && c != '_') {
-                return false;
-            }
-        }
-        
-        return true;
     }
 }
