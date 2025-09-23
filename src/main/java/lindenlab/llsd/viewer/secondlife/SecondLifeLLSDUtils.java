@@ -11,6 +11,7 @@ package lindenlab.llsd.viewer.secondlife;
 import lindenlab.llsd.LLSD;
 import lindenlab.llsd.LLSDException;
 import lindenlab.llsd.viewer.LLSDViewerUtils;
+import lindenlab.llsd.viewer.secondlife.assets.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -400,6 +401,153 @@ public final class SecondLifeLLSDUtils {
         }
     }
     
+    /**
+     * Create texture stream data structure.
+     * 
+     * @param textureId the texture UUID
+     * @param textureData the texture binary data
+     * @param format the texture format
+     * @return LLSD map containing texture stream data
+     * @throws LLSDException if texture processing fails
+     */
+    public static Map<String, Object> createTextureStream(UUID textureId, 
+                                                          byte[] textureData, 
+                                                          SLTextureProcessor.TextureFormat format) 
+            throws LLSDException {
+        SLTextureProcessor.TextureInfo info = SLTextureProcessor.processTexture(textureId, textureData, format);
+        return SLTextureProcessor.createTextureStreamData(textureId, info, textureData);
+    }
+    
+    /**
+     * Create sound stream data structure.
+     * 
+     * @param soundId the sound UUID
+     * @param soundData the sound binary data
+     * @param format the audio format
+     * @return LLSD map containing sound stream data
+     * @throws LLSDException if sound processing fails
+     */
+    public static Map<String, Object> createSoundStream(UUID soundId, 
+                                                        byte[] soundData, 
+                                                        SLSoundProcessor.AudioFormat format) 
+            throws LLSDException {
+        SLSoundProcessor.AudioInfo info = SLSoundProcessor.processSound(soundId, soundData, format);
+        return SLSoundProcessor.createSoundStreamData(soundId, info, soundData);
+    }
+    
+    /**
+     * Create general data stream structure.
+     * 
+     * @param assetId the asset UUID
+     * @param assetType the asset type
+     * @param assetData the asset binary data
+     * @param enableCompression whether to enable compression
+     * @return LLSD map containing data stream information
+     * @throws LLSDException if data processing fails
+     */
+    public static Map<String, Object> createDataStream(UUID assetId, 
+                                                       int assetType, 
+                                                       byte[] assetData, 
+                                                       boolean enableCompression) 
+            throws LLSDException {
+        try {
+            SLDataStreamProcessor.DataStreamInfo info = SLDataStreamProcessor.processDataStream(
+                assetId, assetType, assetData, enableCompression);
+            
+            List<SLDataStreamProcessor.StreamChunk> chunks = SLDataStreamProcessor.createStreamChunks(
+                assetData, info.getCompression());
+            
+            return SLDataStreamProcessor.createDataStreamLLSD(info, chunks);
+        } catch (Exception e) {
+            throw new LLSDException("Failed to create data stream: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Process incoming asset stream from Second Life.
+     * 
+     * @param streamData the LLSD stream data
+     * @return processed asset information
+     * @throws LLSDException if stream processing fails
+     */
+    public static Map<String, Object> processIncomingStream(Map<String, Object> streamData) 
+            throws LLSDException {
+        if (!streamData.containsKey("AssetType")) {
+            throw new LLSDException("Missing AssetType in stream data");
+        }
+        
+        int assetType = (Integer) streamData.get("AssetType");
+        UUID assetId = UUID.fromString(streamData.get("AssetID").toString());
+        byte[] data = (byte[]) streamData.get("Data");
+        
+        Map<String, Object> result = new HashMap<>();
+        result.put("AssetID", assetId);
+        result.put("AssetType", assetType);
+        result.put("ProcessedAt", System.currentTimeMillis() / 1000.0);
+        
+        if (SLAssetType.isTextureType(assetType)) {
+            SLTextureProcessor.TextureFormat format = SLTextureProcessor.detectTextureFormat(data);
+            SLTextureProcessor.TextureInfo info = SLTextureProcessor.processTexture(assetId, data, format);
+            result.put("TextureInfo", createTextureInfoMap(info));
+            result.put("Valid", info.isValid());
+        } else if (SLAssetType.isSoundType(assetType)) {
+            SLSoundProcessor.AudioFormat format = SLSoundProcessor.detectAudioFormat(data);
+            SLSoundProcessor.AudioInfo info = SLSoundProcessor.processSound(assetId, data, format);
+            result.put("AudioInfo", createAudioInfoMap(info));
+            result.put("Valid", info.isValid());
+        } else {
+            SLDataStreamProcessor.DataStreamInfo info = SLDataStreamProcessor.processDataStream(
+                assetId, assetType, data, true);
+            result.put("StreamInfo", createStreamInfoMap(info));
+            result.put("Valid", info.isValid());
+        }
+        
+        return result;
+    }
+    
+    /**
+     * Create texture info map for LLSD.
+     */
+    private static Map<String, Object> createTextureInfoMap(SLTextureProcessor.TextureInfo info) {
+        Map<String, Object> infoMap = new HashMap<>();
+        infoMap.put("Format", info.getFormat().name());
+        infoMap.put("Width", info.getWidth());
+        infoMap.put("Height", info.getHeight());
+        infoMap.put("Levels", info.getLevels());
+        infoMap.put("Size", info.getSize());
+        infoMap.put("HasAlpha", info.hasAlpha());
+        return infoMap;
+    }
+    
+    /**
+     * Create audio info map for LLSD.
+     */
+    private static Map<String, Object> createAudioInfoMap(SLSoundProcessor.AudioInfo info) {
+        Map<String, Object> infoMap = new HashMap<>();
+        infoMap.put("Format", info.getFormat().name());
+        infoMap.put("SampleRate", info.getSampleRate());
+        infoMap.put("Channels", info.getChannels());
+        infoMap.put("BitsPerSample", info.getBitsPerSample());
+        infoMap.put("Duration", info.getDuration());
+        infoMap.put("Size", info.getSize());
+        infoMap.put("Compressed", info.isCompressed());
+        return infoMap;
+    }
+    
+    /**
+     * Create stream info map for LLSD.
+     */
+    private static Map<String, Object> createStreamInfoMap(SLDataStreamProcessor.DataStreamInfo info) {
+        Map<String, Object> infoMap = new HashMap<>();
+        infoMap.put("TotalSize", info.getTotalSize());
+        infoMap.put("CompressedSize", info.getCompressedSize());
+        infoMap.put("Compression", info.getCompression().getName());
+        infoMap.put("ChunkCount", info.getChunkCount());
+        infoMap.put("CompressionRatio", info.getCompressionRatio());
+        infoMap.put("Metadata", info.getMetadata());
+        return infoMap;
+    }
+
     /**
      * Result of LLSD validation.
      */
