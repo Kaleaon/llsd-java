@@ -126,6 +126,24 @@ class LLSDNotationTest {
         }
 
         @Test
+        @DisplayName("Should parse map with quoted string key")
+        void testParseMapWithQuotedKey() throws Exception {
+            String notation = "{s'quoted-key':i123}";
+
+            try (InputStream input = new ByteArrayInputStream(notation.getBytes(StandardCharsets.UTF_8))) {
+                LLSDNotationParser parser = new LLSDNotationParser();
+                LLSD result = parser.parse(input);
+
+                assertTrue(result.getContent() instanceof Map);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> map = (Map<String, Object>) result.getContent();
+
+                assertTrue(map.containsKey("quoted-key"));
+                assertEquals(123, map.get("quoted-key"));
+            }
+        }
+
+        @Test
         @DisplayName("Should parse nested structures")
         void testParseNested() throws Exception {
             String notation = "{users:[{name:s'Alice',age:i25},{name:s'Bob',age:i30}]}";

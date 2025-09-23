@@ -453,25 +453,16 @@ public class LLSDNotationParser {
             // Parse key (should be an identifier or string)
             String key;
             char keyStart = tokenizer.peek();
+
             if (keyStart == 's') {
-                // Could be a string key or an identifier starting with 's'
-                // Look ahead to see if next char is a quote
-                int savedPosition = tokenizer.position;
-                tokenizer.consume(); // consume 's'
-                if (tokenizer.position < tokenizer.notation.length()) {
-                    char nextChar = tokenizer.notation.charAt(tokenizer.position);
-                    if (nextChar == '\'' || nextChar == '"') {
-                        // It's a string key
-                        tokenizer.consume(); // consume delimiter
-                        key = tokenizer.consumeString(nextChar);
-                    } else {
-                        // It's an identifier starting with 's', backtrack
-                        tokenizer.position = savedPosition;
-                        key = tokenizer.consumeUntil(':', ' ', '\t', '\n', '\r');
-                    }
-                } else {
-                    // End of input, backtrack
-                    tokenizer.position = savedPosition;
+                // This could be a string literal `s'...'` or an identifier like `status`.
+                // We can try to parse it as a string and if that fails, treat it as an identifier.
+                int savedPos = tokenizer.position;
+                try {
+                    key = parseString(tokenizer);
+                } catch (LLSDException e) {
+                    // It's not a string literal, so it must be an identifier.
+                    tokenizer.position = savedPos; // backtrack
                     key = tokenizer.consumeUntil(':', ' ', '\t', '\n', '\r');
                 }
             } else if (Character.isLetter(keyStart) || keyStart == '_') {
