@@ -1,11 +1,14 @@
-# Build artifacts
+# Maven build output
 target/
 *.class
 
-# IDE files  
+# IDE files
 .idea/
 *.iml
 .vscode/
+.project
+.classpath
+.settings/
 .eclipse/
 
 # OS files
