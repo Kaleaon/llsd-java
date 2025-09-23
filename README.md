@@ -5,7 +5,7 @@ This is a modernized Java implementation of [LLSD (Linden Lab Structured Data)](
 
 The library has been updated to use modern Java standards and best practices, targeting Java 17+ with comprehensive test coverage and improved documentation.
 
-**NEW:** This repository now includes Java conversions of LLSD functionality from the Second Life and Firestorm viewer C++ implementations, providing enhanced features and viewer-specific utilities.
+**NEW:** This repository now includes Java conversions of LLSD functionality from the Second Life and Firestorm viewer C++ implementations, providing enhanced features, viewer-specific utilities, and comprehensive **Second Life asset processing capabilities**.
 
 ## Features
 
@@ -15,12 +15,21 @@ The library has been updated to use modern Java standards and best practices, ta
 - **Notation LLSD Format**: Compact text-based format (e.g., `s'string'`, `i42`, `[i1,i2,i3]`)
 - **Binary LLSD Format**: Efficient binary serialization format for high-performance applications
 - **Modern Java Patterns**: Uses Java 17+ features and modern best practices
-- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality (90+ tests)
+- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality (100+ tests)
 - **Thread-Safe Parsing**: Proper exception handling and resource management
 - **Utility Functions**: Helper methods for navigating, validating, and manipulating LLSD data
 - **Multiple Serialization Formats**: Support for XML, JSON, Notation, and Binary output formats
 
-### NEW: Viewer Extensions
+### NEW: Second Life Asset Processing
+
+- **Texture Stream Processing**: Complete texture handling for J2C/JPEG2000, TGA, BMP, JPEG, PNG formats
+- **Sound Stream Processing**: Audio processing for WAV, OGG, MP3 formats with streaming support
+- **Data Stream Framework**: General binary asset processing with compression, validation, and chunking
+- **Visual Engine Foundation**: 3D math utilities (Vector3, Quaternion), scene graph, and rendering framework
+- **Asset Type Management**: Complete Second Life asset type system with validation and MIME type handling
+- **Caching and Performance**: Intelligent caching systems for textures, sounds, and data streams
+
+### Enhanced Viewer Extensions
 
 - **Enhanced LLSD Utilities**: Advanced utilities converted from Second Life/Firestorm C++ code
 - **Type System Extensions**: Enhanced type detection and conversion from viewer implementations
@@ -294,7 +303,155 @@ Map<String, Object> userPrefs = loadUserPreferences();
 Map<String, Object> merged = LLSDUtils.mergeMaps(defaults, userPrefs);
 ```
 
-## NEW: Viewer-Specific Extensions
+## NEW: Second Life Asset Processing
+
+### Texture Stream Processing
+
+```java
+import lindenlab.llsd.viewer.secondlife.assets.*;
+
+// Process texture data
+UUID textureId = UUID.randomUUID();
+byte[] textureData = loadTextureFile("texture.j2c");
+
+// Detect format and process
+SLTextureProcessor.TextureFormat format = SLTextureProcessor.detectTextureFormat(textureData);
+SLTextureProcessor.TextureInfo info = SLTextureProcessor.processTexture(textureId, textureData, format);
+
+// Create LLSD texture stream
+Map<String, Object> textureStream = SecondLifeLLSDUtils.createTextureStream(
+    textureId, textureData, format);
+
+// Validate texture dimensions for Second Life
+boolean validSL = SLTextureProcessor.isValidSLTextureDimensions(info.getWidth(), info.getHeight());
+
+// Convert texture formats
+byte[] convertedTexture = SLTextureProcessor.convertTexture(
+    textureData, SLTextureProcessor.TextureFormat.J2C, SLTextureProcessor.TextureFormat.PNG);
+```
+
+### Sound Stream Processing
+
+```java
+import lindenlab.llsd.viewer.secondlife.assets.*;
+
+// Process audio data
+UUID soundId = UUID.randomUUID();
+byte[] audioData = loadAudioFile("sound.wav");
+
+// Detect format and process
+SLSoundProcessor.AudioFormat format = SLSoundProcessor.detectAudioFormat(audioData);
+SLSoundProcessor.AudioInfo info = SLSoundProcessor.processSound(soundId, audioData, format);
+
+// Create LLSD sound stream
+Map<String, Object> soundStream = SecondLifeLLSDUtils.createSoundStream(
+    soundId, audioData, format);
+
+// Validate audio for Second Life constraints
+boolean validSL = SLSoundProcessor.isValidSLAudio(info);
+
+// Get audio properties
+double duration = info.getDuration();
+int sampleRate = info.getSampleRate();
+int channels = info.getChannels();
+```
+
+### Data Stream Processing
+
+```java
+import lindenlab.llsd.viewer.secondlife.assets.*;
+
+// Process general data stream
+UUID assetId = UUID.randomUUID();
+byte[] assetData = loadAssetFile("model.dae");
+
+// Create data stream with compression
+SLDataStreamProcessor.DataStreamInfo info = SLDataStreamProcessor.processDataStream(
+    assetId, SLAssetType.OBJECT, assetData, true);
+
+// Create stream chunks for transfer
+List<SLDataStreamProcessor.StreamChunk> chunks = SLDataStreamProcessor.createStreamChunks(
+    assetData, info.getCompression());
+
+// Create LLSD data stream
+Map<String, Object> dataStream = SLDataStreamProcessor.createDataStreamLLSD(info, chunks);
+
+// Validate data integrity
+String checksum = SLDataStreamProcessor.calculateChecksum(assetData);
+boolean valid = SLDataStreamProcessor.validateDataIntegrity(assetData, checksum);
+
+// Reconstruct data from chunks
+byte[] reconstructed = SLDataStreamProcessor.reconstructFromChunks(chunks, info.getCompression());
+```
+
+### Visual Engine Foundation
+
+```java
+import lindenlab.llsd.viewer.secondlife.engine.*;
+
+// 3D Vector operations
+Vector3 position = new Vector3(10.0, 20.0, 30.0);
+Vector3 target = new Vector3(0.0, 0.0, 0.0);
+Vector3 direction = target.subtract(position).normalize();
+
+// Quaternion rotations
+Quaternion rotation = Quaternion.fromAxisAngle(Vector3.Z_AXIS, Math.PI / 4); // 45 degrees
+Vector3 rotatedVector = rotation.rotate(Vector3.X_AXIS);
+
+// Scene graph management
+SceneNode root = new SceneNode("Root");
+SceneNode child = new SceneNode("Child");
+root.addChild(child);
+
+// Set transformations
+child.setPosition(new Vector3(5.0, 0.0, 0.0));
+child.setRotation(Quaternion.fromEulerAngles(0.0, Math.PI / 2, 0.0));
+
+// Get world transformations
+Vector3 worldPosition = child.getWorldPosition();
+double[][] worldMatrix = child.getWorldTransform();
+
+// Convert to LLSD
+Map<String, Object> sceneData = root.toLLSD();
+```
+
+### Asset Type Management
+
+```java
+import lindenlab.llsd.viewer.secondlife.assets.SLAssetType;
+
+// Check asset types
+boolean isTexture = SLAssetType.isTextureType(SLAssetType.TEXTURE);
+boolean isSound = SLAssetType.isSoundType(SLAssetType.SOUND_WAV);
+boolean isStream = SLAssetType.isStreamType(SLAssetType.TEXTURE_STREAM);
+
+// Get asset information
+String typeName = SLAssetType.getTypeName(SLAssetType.MESH);
+String mimeType = SLAssetType.getMimeType(SLAssetType.IMAGE_JPEG);
+```
+
+### Processing Incoming Streams
+
+```java
+// Process incoming asset stream from Second Life
+Map<String, Object> incomingStream = parseIncomingLLSD();
+Map<String, Object> processed = SecondLifeLLSDUtils.processIncomingStream(incomingStream);
+
+// Check if processing was successful
+boolean valid = (Boolean) processed.get("Valid");
+if (valid) {
+    if (processed.containsKey("TextureInfo")) {
+        // Handle texture
+        Map<String, Object> textureInfo = (Map<String, Object>) processed.get("TextureInfo");
+        int width = (Integer) textureInfo.get("Width");
+        int height = (Integer) textureInfo.get("Height");
+    } else if (processed.containsKey("AudioInfo")) {
+        // Handle audio
+        Map<String, Object> audioInfo = (Map<String, Object>) processed.get("AudioInfo");
+        double duration = (Double) audioInfo.get("Duration");
+    }
+}
+```
 
 ### Enhanced LLSD Utilities (from C++ viewer code)
 
