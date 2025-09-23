@@ -55,12 +55,20 @@ public class LLSDBinarySerializer extends LLSDSerializer {
         serializeElement(output, llsd.getContent());
     }
     
+    /**
+     * Serialize LLSD to string
+     * @param llsd the LLSD object to serialize
+     * @return the serialized string
+     * @throws LLSDException if serialization fails
+     */
     @Override
     public String serializeToString(LLSD llsd) throws LLSDException {
         try {
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
             serialize(llsd, baos);
-            return Base64.getEncoder().encodeToString(baos.toByteArray());
+            // For binary format as string, we return the actual binary data without encoding
+            // This allows proper format detection
+            return new String(baos.toByteArray(), "ISO-8859-1"); // Use ISO-8859-1 to preserve bytes
         } catch (IOException e) {
             throw new LLSDException("Error serializing to string", e);
         }
@@ -85,7 +93,8 @@ public class LLSDBinarySerializer extends LLSDSerializer {
     @Override
     public LLSD deserializeFromString(String data) throws LLSDException {
         try {
-            byte[] bytes = Base64.getDecoder().decode(data);
+            // For binary format, treat string as raw bytes
+            byte[] bytes = data.getBytes("ISO-8859-1");
             ByteArrayInputStream bais = new ByteArrayInputStream(bytes);
             return deserialize(bais);
         } catch (IOException e) {
