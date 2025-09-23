@@ -14,6 +14,7 @@ import lindenlab.llsd.LLSDException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**

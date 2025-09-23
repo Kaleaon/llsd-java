@@ -10,6 +10,7 @@ package lindenlab.llsd.viewer;
 
 import java.net.URI;
 import java.util.*;
+import java.util.UUID;
 
 /**
  * Enhanced LLSD type system converted from the Second Life/Firestorm C++ implementation.

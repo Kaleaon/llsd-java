@@ -16,6 +16,7 @@ import lindenlab.llsd.viewer.secondlife.SecondLifeLLSDUtils;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Firestorm specific LLSD utilities and extensions.
@@ -400,16 +401,16 @@ public final class FirestormLLSDUtils {
             Map<String, Object> mapData = (Map<String, Object>) llsdData;
             
             // Check Firestorm version requirements
-            if (rules.requiresFSVersion && mapData.containsKey("ViewerVersion")) {
+            if (rules.isRequiresFSVersion() && mapData.containsKey("ViewerVersion")) {
                 String version = mapData.get("ViewerVersion").toString();
-                if (!isCompatibleFSVersion(version, rules.minFSVersion)) {
+                if (!isCompatibleFSVersion(version, rules.getMinFSVersion())) {
                     result.addError("Incompatible Firestorm version: " + version + 
-                                   " (required: " + rules.minFSVersion + "+)");
+                                   " (required: " + rules.getMinFSVersion() + "+)");
                 }
             }
             
             // Check RLV requirements
-            if (rules.requiresRLV && mapData.containsKey("RLVEnabled")) {
+            if (rules.isRequiresRLV() && mapData.containsKey("RLVEnabled")) {
                 Boolean rlvEnabled = (Boolean) mapData.get("RLVEnabled");
                 if (!Boolean.TRUE.equals(rlvEnabled)) {
                     result.addError("RLV support required but not enabled");
@@ -417,7 +418,7 @@ public final class FirestormLLSDUtils {
             }
             
             // Check bridge requirements
-            if (rules.requiresBridge && mapData.containsKey("BridgeConnected")) {
+            if (rules.isRequiresBridge() && mapData.containsKey("BridgeConnected")) {
                 Boolean bridgeConnected = (Boolean) mapData.get("BridgeConnected");
                 if (!Boolean.TRUE.equals(bridgeConnected)) {
                     result.addWarning("Bridge connection recommended for full functionality");
@@ -485,16 +486,20 @@ public final class FirestormLLSDUtils {
     
     /**
      * Firestorm-specific validation rules extending base SL rules.
+     * 
+     * <p>This class provides a fluent interface for configuring validation rules
+     * specific to Firestorm viewer requirements, building upon the base Second Life
+     * validation framework.</p>
      */
     public static class FSValidationRules {
         private final SecondLifeLLSDUtils.SLValidationRules baseRules = new SecondLifeLLSDUtils.SLValidationRules();
         
-        public boolean requiresFSVersion = false;
-        public String minFSVersion = "6.0.0";
-        public boolean requiresRLV = false;
-        public boolean requiresBridge = false;
-        public Set<String> fsRequiredFields = new HashSet<>();
-        public Map<String, String> fsFieldValidators = new HashMap<>();
+        private boolean requiresFSVersion = false;
+        private String minFSVersion = "6.0.0";
+        private boolean requiresRLV = false;
+        private boolean requiresBridge = false;
+        private final Set<String> fsRequiredFields = new HashSet<>();
+        private final Map<String, String> fsFieldValidators = new HashMap<>();
         
         public FSValidationRules requireMap() {
             baseRules.requireMap();
@@ -542,8 +547,60 @@ public final class FirestormLLSDUtils {
             return this;
         }
         
+        /**
+         * Returns the base SL validation rules.
+         * @return the underlying SL validation rules
+         */
         SecondLifeLLSDUtils.SLValidationRules getBaseRules() {
             return baseRules;
+        }
+        
+        /**
+         * Checks if Firestorm version validation is required.
+         * @return true if version validation is required
+         */
+        public boolean isRequiresFSVersion() {
+            return requiresFSVersion;
+        }
+        
+        /**
+         * Gets the minimum required Firestorm version.
+         * @return the minimum version string
+         */
+        public String getMinFSVersion() {
+            return minFSVersion;
+        }
+        
+        /**
+         * Checks if RLV support is required.
+         * @return true if RLV is required
+         */
+        public boolean isRequiresRLV() {
+            return requiresRLV;
+        }
+        
+        /**
+         * Checks if bridge connection is required.
+         * @return true if bridge is required
+         */
+        public boolean isRequiresBridge() {
+            return requiresBridge;
+        }
+        
+        /**
+         * Gets the set of required Firestorm-specific fields.
+         * @return unmodifiable set of required field names
+         */
+        public Set<String> getFSRequiredFields() {
+            return Collections.unmodifiableSet(fsRequiredFields);
+        }
+        
+        /**
+         * Gets the map of field validators.
+         * @return unmodifiable map of field validators
+         */
+        public Map<String, String> getFSFieldValidators() {
+            return Collections.unmodifiableMap(fsFieldValidators);
         }
     }
     
@@ -618,49 +675,151 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Thread-safe cache for Firestorm LLSD processing.
+     * Thread-safe cache for Firestorm LLSD processing with automatic expiration.
+     * 
+     * <p>This cache provides high-performance concurrent access with automatic cleanup
+     * of expired entries. It uses ConcurrentHashMap for thread-safe operations while
+     * maintaining good performance characteristics.</p>
+     * 
+     * <p>Note: The cache size() method triggers cleanup of expired entries and should
+     * be used judiciously in high-throughput scenarios.</p>
      */
     public static class FSLLSDCache {
         private final ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
         private final long maxAge;
         private final ConcurrentHashMap<String, Long> timestamps = new ConcurrentHashMap<>();
         
+        /**
+         * Creates a new cache with the specified maximum age for entries.
+         * 
+         * @param maxAgeMillis maximum age of cache entries in milliseconds (must be positive)
+         * @throws IllegalArgumentException if maxAgeMillis is not positive
+         */
         public FSLLSDCache(long maxAgeMillis) {
+            if (maxAgeMillis <= 0) {
+                throw new IllegalArgumentException("Max age must be positive: " + maxAgeMillis);
+            }
             this.maxAge = maxAgeMillis;
         }
         
+        /**
+         * Stores a value in the cache with the current timestamp.
+         * 
+         * @param key the cache key (must not be null)
+         * @param value the value to store (can be null)
+         * @throws IllegalArgumentException if key is null
+         */
         public void put(String key, Object value) {
+            if (key == null) {
+                throw new IllegalArgumentException("Cache key cannot be null");
+            }
+            
+            long timestamp = System.currentTimeMillis();
             cache.put(key, value);
-            timestamps.put(key, System.currentTimeMillis());
+            timestamps.put(key, timestamp);
         }
         
+        /**
+         * Retrieves a value from the cache, removing it if expired.
+         * 
+         * @param key the cache key (must not be null) 
+         * @return the cached value, or null if not found or expired
+         * @throws IllegalArgumentException if key is null
+         */
         public Object get(String key) {
+            if (key == null) {
+                throw new IllegalArgumentException("Cache key cannot be null");
+            }
+            
             Long timestamp = timestamps.get(key);
             if (timestamp != null && System.currentTimeMillis() - timestamp > maxAge) {
-                // Expired
-                cache.remove(key);
-                timestamps.remove(key);
+                // Entry is expired - remove it atomically
+                remove(key);
                 return null;
             }
             return cache.get(key);
         }
         
+        /**
+         * Checks if the cache contains a non-expired entry for the given key.
+         * 
+         * @param key the cache key to check
+         * @return true if the key exists and is not expired
+         */
         public boolean contains(String key) {
             return get(key) != null;
         }
         
+        /**
+         * Removes a specific key from the cache.
+         * 
+         * @param key the key to remove
+         * @return the previously cached value, or null if not present
+         */
+        public Object remove(String key) {
+            timestamps.remove(key);
+            return cache.remove(key);
+        }
+        
+        /**
+         * Clears all entries from the cache.
+         */
         public void clear() {
             cache.clear();
             timestamps.clear();
         }
         
+        /**
+         * Returns the current size of the cache after cleaning expired entries.
+         * 
+         * <p>This operation may be expensive as it scans for expired entries.
+         * Use sparingly in performance-critical code.</p>
+         * 
+         * @return the number of non-expired entries in the cache
+         */
         public int size() {
-            // Clean expired entries first
-            long now = System.currentTimeMillis();
-            timestamps.entrySet().removeIf(entry -> now - entry.getValue() > maxAge);
-            cache.keySet().retainAll(timestamps.keySet());
-            
+            cleanExpiredEntries();
             return cache.size();
+        }
+        
+        /**
+         * Removes all expired entries from the cache.
+         * This method is thread-safe but may impact performance.
+         */
+        public void cleanExpiredEntries() {
+            long now = System.currentTimeMillis();
+            
+            // Find expired keys
+            Set<String> expiredKeys = timestamps.entrySet().stream()
+                .filter(entry -> now - entry.getValue() > maxAge)
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toSet());
+            
+            // Remove expired entries
+            expiredKeys.forEach(this::remove);
+        }
+        
+        /**
+         * Gets the maximum age setting for cache entries.
+         * 
+         * @return maximum age in milliseconds
+         */
+        public long getMaxAge() {
+            return maxAge;
+        }
+        
+        /**
+         * Gets statistics about the cache state.
+         * 
+         * @return a map containing cache statistics
+         */
+        public Map<String, Object> getStatistics() {
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("size", cache.size());
+            stats.put("timestampEntries", timestamps.size());
+            stats.put("maxAge", maxAge);
+            stats.put("currentTime", System.currentTimeMillis());
+            return stats;
         }
     }
 }
