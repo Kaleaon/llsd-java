@@ -19,7 +19,28 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * LLSD root, returns by an LLSDParser.
+ * LLSD (Linden Lab Structured Data) root document container.
+ * 
+ * <p>LLSD is a data serialization format used by Linden Lab's Second Life platform.
+ * This class represents a parsed LLSD document and provides methods to access its
+ * content and serialize it back to XML format.</p>
+ * 
+ * <p>The content can be any of the supported LLSD data types:
+ * <ul>
+ * <li>{@link java.lang.Boolean} - boolean values</li>
+ * <li>{@link java.lang.Integer} - integer values</li>
+ * <li>{@link java.lang.Double} - real/double values</li>
+ * <li>{@link java.lang.String} - string values</li>
+ * <li>{@link java.util.Date} - date values</li>
+ * <li>{@link java.net.URI} - URI values</li>
+ * <li>{@link java.util.UUID} - UUID values</li>
+ * <li>{@link java.util.List} - arrays of LLSD values</li>
+ * <li>{@link java.util.Map} - maps with string keys and LLSD values</li>
+ * </ul></p>
+ * 
+ * @since 1.0
+ * @author University of St. Andrews (original implementation)
+ * @see LLSDParser
  */
 public class LLSD {
     private final Object content;

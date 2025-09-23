@@ -22,8 +22,27 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * LLSD parser in Java. See <a href="http://wiki.secondlife.com/wiki/LLSD">http://wiki.secondlife.com/wiki/LLSD</a>
- * for more information on LLSD.
+ * Parser for LLSD (Linden Lab Structured Data) documents.
+ * 
+ * <p>This parser converts XML-formatted LLSD documents into Java objects.
+ * It supports all standard LLSD data types and handles proper type conversion.</p>
+ * 
+ * <p>Example usage:</p>
+ * <pre>{@code
+ * LLSDParser parser = new LLSDParser();
+ * try (InputStream input = Files.newInputStream(Paths.get("document.xml"))) {
+ *     LLSD document = parser.parse(input);
+ *     Object content = document.getContent();
+ *     // Process the content...
+ * }
+ * }</pre>
+ * 
+ * <p>For more information about LLSD format, see 
+ * <a href="http://wiki.secondlife.com/wiki/LLSD">the LLSD specification</a>.</p>
+ * 
+ * @since 1.0
+ * @author University of St. Andrews (original implementation)
+ * @see LLSD
  */
 public class LLSDParser {
     private final DateFormat iso9601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -41,19 +60,15 @@ public class LLSDParser {
     }
 
     private List<Node> extractElements(final NodeList nodes) {
-        final List<Node> trimmedNodes = new ArrayList<Node>();
-
+        final List<Node> trimmedNodes = new ArrayList<>();
+        
         for (int nodeIdx = 0; nodeIdx < nodes.getLength(); nodeIdx++) {
             final Node node = nodes.item(nodeIdx);
-            switch (node.getNodeType()) {
-            case Node.ELEMENT_NODE:
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
                 trimmedNodes.add(node);
-                break;
-            default:
-                break;
             }
         }
-
+        
         return trimmedNodes;
     }
 
@@ -101,11 +116,11 @@ public class LLSDParser {
 
     private List<Object> parseArray(final NodeList nodeList)
         throws LLSDException {
-        final List<Object> value = new ArrayList<Object>();
+        final List<Object> value = new ArrayList<>();
 
         for (int nodeIdx = 0; nodeIdx < nodeList.getLength(); nodeIdx++) {
             final Node node = nodeList.item(nodeIdx);
-
+            
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 value.add(parseNode(node));
             }
@@ -164,7 +179,7 @@ public class LLSDParser {
     private Map<String, Object> parseMap(final NodeList nodeList)
         throws LLSDException {
         final List<Node> trimmedNodes = extractElements(nodeList);
-        final Map<String, Object> valueMap = new HashMap<String, Object>();
+        final Map<String, Object> valueMap = new HashMap<>();
 
         if ((trimmedNodes.size() % 2) != 0) {
             throw new LLSDException("Unable to parse LLSD map as it has odd number of nodes: "
