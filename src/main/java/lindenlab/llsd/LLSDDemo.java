@@ -12,10 +12,30 @@ import java.net.URI;
 import java.util.*;
 
 /**
- * Simple demonstration of master branch LLSD capabilities
+ * A demonstration class that showcases the serialization capabilities of the LLSD library.
+ * <p>
+ * This class provides a simple command-line application that creates a sample
+ * LLSD data structure (a map) and then serializes it into the four supported
+ * formats:
+ * <ul>
+ *     <li>XML</li>
+ *     <li>JSON</li>
+ *     <li>Notation</li>
+ *     <li>Binary</li>
+ * </ul>
+ * The output for each format is printed to the console, providing a clear
+ * example of how to use the various serializer classes.
  */
 public class LLSDDemo {
-    
+
+    /**
+     * The main entry point for the demonstration application.
+     * <p>
+     * It builds a sample LLSD object and prints its representation in all
+     * supported serialization formats.
+     *
+     * @param args Command-line arguments (not used).
+     */
     public static void main(String[] args) {
         try {
             System.out.println("LLSD Master Branch Integration Demo");

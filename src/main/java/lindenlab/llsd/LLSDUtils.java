@@ -10,25 +10,19 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * Utility class providing convenient methods for working with LLSD data structures.
- * 
- * <p>This class provides static utility methods for common operations on LLSD data
- * such as navigation, validation, and manipulation of nested structures.</p>
- * 
- * <p>Example usage:</p>
- * <pre>{@code
- * LLSD document = parser.parse(inputStream);
- * 
- * // Navigate nested structures safely
- * String name = LLSDUtils.getString(document.getContent(), "user.profile.name", "Unknown");
- * int age = LLSDUtils.getInteger(document.getContent(), "user.profile.age", 0);
- * 
- * // Convert to specific types with validation
- * Map<String, Object> userMap = LLSDUtils.asMap(document.getContent());
- * List<Object> itemsList = LLSDUtils.asList(userMap.get("items"));
- * }</pre>
- * 
- * @since 1.0
+ * A utility class providing helper methods for common operations on LLSD data.
+ * <p>
+ * This final class contains static methods that simplify tasks such as:
+ * <ul>
+ *   <li>Navigating nested LLSD structures (maps and arrays) using a simple path syntax.</li>
+ *   <li>Safely extracting values of a specific type with default fallbacks.</li>
+ *   <li>Performing deep copies of LLSD objects.</li>
+ *   <li>Merging LLSD maps.</li>
+ *   <li>Validating the presence of required fields.</li>
+ *   <li>Pretty-printing LLSD data for debugging.</li>
+ * </ul>
+ * As a utility class, it cannot be instantiated.
+ *
  * @see LLSD
  */
 public final class LLSDUtils {
@@ -38,12 +32,18 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely extracts a string value from a nested LLSD structure using a dot-separated path.
-     * 
-     * @param root the root LLSD object to navigate
-     * @param path the dot-separated path (e.g., "user.profile.name")
-     * @param defaultValue the default value if the path doesn't exist or isn't a string
-     * @return the string value or the default value
+     * Safely retrieves a string value from a nested LLSD structure.
+     * <p>
+     * This method navigates through a series of nested {@link Map} objects using a
+     * dot-separated path (e.g., "user.profile.name"). If the path is valid and
+     * the final value is a {@link String}, it is returned. Otherwise, the
+     * specified default value is returned.
+     *
+     * @param root         The root of the LLSD data structure (typically a {@link Map}).
+     * @param path         The dot-separated path to the desired value.
+     * @param defaultValue The value to return if the path is not found or the
+     *                     value is not a string.
+     * @return The extracted string or the default value.
      */
     public static String getString(Object root, String path, String defaultValue) {
         Object value = navigatePath(root, path);
@@ -51,12 +51,13 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely extracts an integer value from a nested LLSD structure.
-     * 
-     * @param root the root LLSD object to navigate
-     * @param path the dot-separated path
-     * @param defaultValue the default value if the path doesn't exist or isn't an integer
-     * @return the integer value or the default value
+     * Safely retrieves an integer value from a nested LLSD structure.
+     *
+     * @param root         The root of the LLSD data structure.
+     * @param path         The dot-separated path to the desired value.
+     * @param defaultValue The value to return if the path is not found or the
+     *                     value is not an integer.
+     * @return The extracted integer or the default value.
      */
     public static int getInteger(Object root, String path, int defaultValue) {
         Object value = navigatePath(root, path);
@@ -64,12 +65,16 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely extracts a double value from a nested LLSD structure.
-     * 
-     * @param root the root LLSD object to navigate
-     * @param path the dot-separated path
-     * @param defaultValue the default value if the path doesn't exist or isn't a double
-     * @return the double value or the default value
+     * Safely retrieves a double value from a nested LLSD structure.
+     * <p>
+     * If the value at the specified path is an integer, it will be safely
+     * converted to a double.
+     *
+     * @param root         The root of the LLSD data structure.
+     * @param path         The dot-separated path to the desired value.
+     * @param defaultValue The value to return if the path is not found or the
+     *                     value is not a number.
+     * @return The extracted double or the default value.
      */
     public static double getDouble(Object root, String path, double defaultValue) {
         Object value = navigatePath(root, path);
@@ -82,12 +87,13 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely extracts a boolean value from a nested LLSD structure.
-     * 
-     * @param root the root LLSD object to navigate
-     * @param path the dot-separated path
-     * @param defaultValue the default value if the path doesn't exist or isn't a boolean
-     * @return the boolean value or the default value
+     * Safely retrieves a boolean value from a nested LLSD structure.
+     *
+     * @param root         The root of the LLSD data structure.
+     * @param path         The dot-separated path to the desired value.
+     * @param defaultValue The value to return if the path is not found or the
+     *                     value is not a boolean.
+     * @return The extracted boolean or the default value.
      */
     public static boolean getBoolean(Object root, String path, boolean defaultValue) {
         Object value = navigatePath(root, path);
@@ -95,12 +101,16 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely extracts a UUID value from a nested LLSD structure.
-     * 
-     * @param root the root LLSD object to navigate
-     * @param path the dot-separated path
-     * @param defaultValue the default value if the path doesn't exist or isn't a UUID
-     * @return the UUID value or the default value
+     * Safely retrieves a UUID value from a nested LLSD structure.
+     * <p>
+     * If the value at the specified path is a string, this method will attempt
+     * to parse it as a UUID.
+     *
+     * @param root         The root of the LLSD data structure.
+     * @param path         The dot-separated path to the desired value.
+     * @param defaultValue The value to return if the path is not found or the
+     *                     value cannot be converted to a UUID.
+     * @return The extracted UUID or the default value.
      */
     public static UUID getUUID(Object root, String path, UUID defaultValue) {
         Object value = navigatePath(root, path);
@@ -117,10 +127,14 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely casts an object to a Map.
-     * 
-     * @param obj the object to cast
-     * @return the Map if successful, or an empty Map if not
+     * Safely casts an object to a {@code Map<String, Object>}.
+     * <p>
+     * If the object is not an instance of {@link Map}, an empty {@link HashMap}
+     * is returned to prevent {@link ClassCastException} and null pointer issues.
+     *
+     * @param obj The object to cast.
+     * @return The object as a {@link Map}, or a new empty {@link Map} if the
+     *         cast is not possible.
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> asMap(Object obj) {
@@ -128,10 +142,14 @@ public final class LLSDUtils {
     }
 
     /**
-     * Safely casts an object to a List.
-     * 
-     * @param obj the object to cast
-     * @return the List if successful, or an empty List if not
+     * Safely casts an object to a {@code List<Object>}.
+     * <p>
+     * If the object is not an instance of {@link List}, an empty {@link ArrayList}
+     * is returned.
+     *
+     * @param obj The object to cast.
+     * @return The object as a {@link List}, or a new empty {@link List} if the
+     *         cast is not possible.
      */
     @SuppressWarnings("unchecked")
     public static List<Object> asList(Object obj) {
@@ -139,10 +157,18 @@ public final class LLSDUtils {
     }
 
     /**
-     * Checks if an LLSD value is considered "empty" (null, empty string, empty collection, or undefined).
-     * 
-     * @param value the value to check
-     * @return true if the value is empty, false otherwise
+     * Checks if an LLSD value is considered "empty".
+     * <p>
+     * A value is considered empty if it is:
+     * <ul>
+     *   <li>{@code null}</li>
+     *   <li>An instance of {@link LLSDUndefined}</li>
+     *   <li>An empty {@link String}, {@link Collection}, or {@link Map}</li>
+     *   <li>A zero-length byte array</li>
+     * </ul>
+     *
+     * @param value The LLSD value to check.
+     * @return {@code true} if the value is empty, {@code false} otherwise.
      */
     public static boolean isEmpty(Object value) {
         if (value == null) {
@@ -167,10 +193,15 @@ public final class LLSDUtils {
     }
 
     /**
-     * Creates a deep copy of an LLSD structure.
-     * 
-     * @param obj the LLSD object to copy
-     * @return a deep copy of the object
+     * Creates a deep copy of an LLSD data structure.
+     * <p>
+     * This method recursively traverses maps and lists to create a completely
+     * independent copy of the original structure. Immutable types (like String,
+     * Integer, etc.) are copied by reference, while mutable types (Map, List,
+     * byte[]) are duplicated.
+     *
+     * @param obj The LLSD object (e.g., Map, List, or primitive) to copy.
+     * @return A deep copy of the provided object.
      */
     @SuppressWarnings("unchecked")
     public static Object deepCopy(Object obj) {
@@ -204,11 +235,16 @@ public final class LLSDUtils {
     }
 
     /**
-     * Merges two LLSD maps recursively.
-     * 
-     * @param target the target map to merge into
-     * @param source the source map to merge from
-     * @return the merged map
+     * Recursively merges two LLSD maps.
+     * <p>
+     * This method combines the contents of a {@code source} map into a
+     * {@code target} map. If a key exists in both maps and both corresponding
+     * values are maps, it recursively merges them. Otherwise, the value from
+     * the source map overwrites the value in the target map.
+     *
+     * @param target The map to merge into. A new map is created if this is null.
+     * @param source The map to merge from.
+     * @return A new map containing the merged key-value pairs.
      */
     @SuppressWarnings("unchecked")
     public static Map<String, Object> mergeMaps(Map<String, Object> target, Map<String, Object> source) {
@@ -239,11 +275,15 @@ public final class LLSDUtils {
     }
 
     /**
-     * Validates that an LLSD structure contains all required fields.
-     * 
-     * @param obj the LLSD object to validate
-     * @param requiredFields the list of required field paths
-     * @return a list of missing field paths, empty if all fields are present
+     * Validates that an LLSD data structure contains a set of required fields.
+     * <p>
+     * It checks for the presence and non-emptiness of each field specified in
+     * {@code requiredFields}.
+     *
+     * @param obj            The LLSD object (typically a Map) to validate.
+     * @param requiredFields A varargs array of dot-separated paths that must exist.
+     * @return A list of the paths that were missing or empty. An empty list
+     *         indicates that all required fields were present.
      */
     public static List<String> validateRequiredFields(Object obj, String... requiredFields) {
         List<String> missing = new ArrayList<>();
@@ -258,11 +298,11 @@ public final class LLSDUtils {
     }
 
     /**
-     * Converts an LLSD structure to a human-readable string representation.
-     * 
-     * @param obj the LLSD object to format
-     * @param indent the indentation level
-     * @return a formatted string representation
+     * Converts an LLSD data structure into a formatted, human-readable string.
+     *
+     * @param obj    The LLSD object to format.
+     * @param indent The number of spaces to use for each level of indentation.
+     * @return A pretty-printed string representation of the object.
      */
     public static String prettyPrint(Object obj, int indent) {
         StringBuilder sb = new StringBuilder();
@@ -271,17 +311,23 @@ public final class LLSDUtils {
     }
 
     /**
-     * Converts an LLSD structure to a human-readable string representation with default indentation.
-     * 
-     * @param obj the LLSD object to format
-     * @return a formatted string representation
+     * Converts an LLSD data structure into a formatted string with a default
+     * indentation of 2 spaces.
+     *
+     * @param obj The LLSD object to format.
+     * @return A pretty-printed string representation of the object.
      */
     public static String prettyPrint(Object obj) {
         return prettyPrint(obj, 2);
     }
 
     /**
-     * Navigates a dot-separated path in an LLSD structure.
+     * Navigates a dot-separated path within a nested LLSD data structure.
+     *
+     * @param root The root object (should be a Map).
+     * @param path The dot-separated path to follow.
+     * @return The object at the specified path, or {@code null} if the path is
+     *         invalid or does not exist.
      */
     private static Object navigatePath(Object root, String path) {
         if (root == null || path == null || path.isEmpty()) {
@@ -305,7 +351,12 @@ public final class LLSDUtils {
     }
 
     /**
-     * Recursive helper for pretty printing.
+     * The recursive helper method for {@link #prettyPrint(Object, int)}.
+     *
+     * @param obj          The current object to print.
+     * @param indentSize   The number of spaces per indentation level.
+     * @param currentLevel The current indentation level.
+     * @param sb           The {@link StringBuilder} to append the output to.
      */
     @SuppressWarnings("unchecked")
     private static void prettyPrintRecursive(Object obj, int indentSize, int currentLevel, StringBuilder sb) {

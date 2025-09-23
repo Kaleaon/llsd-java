@@ -19,14 +19,21 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * Serializer for LLSD documents to Binary format.
- * 
- * <p>This serializer converts LLSD objects into binary-formatted documents using
- * the efficient binary LLSD protocol.</p>
- * 
- * @since 1.0
+ * A serializer for converting LLSD (Linden Lab Structured Data) objects into
+ * their binary representation.
+ * <p>
+ * This class takes an {@link LLSD} object and writes its content to an
+ * {@link OutputStream} or returns it as a {@code byte[]}. The binary format
+ * is a compact and efficient way to represent LLSD data, suitable for network
+ * transmission or storage.
+ * <p>
+ * The serializer correctly handles all standard LLSD data types, converting them
+ * into the byte-level format specified by the LLSD binary protocol. This includes
+ * using specific markers for each data type and encoding values in big-endian order.
+ *
  * @see LLSD
  * @see LLSDBinaryParser
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Binary_Serialization">LLSD Binary Specification</a>
  */
 public class LLSDBinarySerializer {
     private static final String LLSD_BINARY_HEADER = "<?llsd/binary?>";
@@ -50,21 +57,23 @@ public class LLSDBinarySerializer {
     private static final byte KEY_MARKER = (byte) 'k';
 
     /**
-     * Constructs a new LLSD Binary serializer.
+     * Initializes a new instance of the {@code LLSDBinarySerializer}.
      */
     public LLSDBinarySerializer() {
     }
 
     /**
-     * Serializes an LLSD document to Binary format.
+     * Serializes an LLSD document into its binary representation and writes it to
+     * an output stream.
      *
-     * @param llsd the LLSD document to serialize
-     * @param output the output stream to write binary data to
-     * @param includeHeader whether to include the binary LLSD header
-     * @throws IOException if there was a problem writing to the output stream
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd          The {@link LLSD} document to serialize.
+     * @param output        The {@link OutputStream} to which the binary data will be written.
+     * @param includeHeader If true, the standard binary header ({@code "<?llsd/binary?>"})
+     *                      will be written at the beginning of the stream.
+     * @throws IOException   if an I/O error occurs while writing to the stream.
+     * @throws LLSDException if the LLSD object contains data that cannot be serialized.
      */
-    public void serialize(LLSD llsd, OutputStream output, boolean includeHeader) 
+    public void serialize(LLSD llsd, OutputStream output, boolean includeHeader)
             throws IOException, LLSDException {
         if (includeHeader) {
             output.write(LLSD_BINARY_HEADER_BYTES);
@@ -73,24 +82,24 @@ public class LLSDBinarySerializer {
     }
 
     /**
-     * Serializes an LLSD document to Binary format with header.
+     * Serializes an LLSD document to an output stream, including the binary header by default.
      *
-     * @param llsd the LLSD document to serialize
-     * @param output the output stream to write binary data to
-     * @throws IOException if there was a problem writing to the output stream
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd   The {@link LLSD} document to serialize.
+     * @param output The {@link OutputStream} to write to.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the data cannot be serialized.
      */
     public void serialize(LLSD llsd, OutputStream output) throws IOException, LLSDException {
         serialize(llsd, output, true);
     }
 
     /**
-     * Serializes an LLSD document to binary byte array.
+     * Serializes an LLSD document into a binary byte array.
      *
-     * @param llsd the LLSD document to serialize
-     * @param includeHeader whether to include the binary LLSD header
-     * @return the serialized binary data
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd          The {@link LLSD} document to serialize.
+     * @param includeHeader If true, the header is included in the returned byte array.
+     * @return A {@code byte[]} containing the serialized binary data.
+     * @throws LLSDException if the serialization fails.
      */
     public byte[] serialize(LLSD llsd, boolean includeHeader) throws LLSDException {
         try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
@@ -102,16 +111,27 @@ public class LLSDBinarySerializer {
     }
 
     /**
-     * Serializes an LLSD document to binary byte array with header.
+     * Serializes an LLSD document into a binary byte array, including the header by default.
      *
-     * @param llsd the LLSD document to serialize
-     * @return the serialized binary data
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd The {@link LLSD} document to serialize.
+     * @return A {@code byte[]} containing the serialized binary data.
+     * @throws LLSDException if the serialization fails.
      */
     public byte[] serialize(LLSD llsd) throws LLSDException {
         return serialize(llsd, true);
     }
 
+    /**
+     * Recursively serializes a single LLSD value to the output stream.
+     * <p>
+     * This method determines the type of the given value and calls the appropriate
+     * helper method to write the corresponding binary representation.
+     *
+     * @param value  The object to serialize.
+     * @param output The stream to write to.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the value's type is not serializable.
+     */
     private void serializeValue(Object value, OutputStream output) throws IOException, LLSDException {
         if (value == null || (value instanceof String && ((String) value).isEmpty())) {
             output.write(UNDEF_MARKER);
@@ -146,10 +166,12 @@ public class LLSDBinarySerializer {
         }
     }
 
+    /** Writes a boolean value as a single byte marker ('1' or '0'). */
     private void serializeBoolean(Boolean value, OutputStream output) throws IOException {
         output.write(value ? TRUE_MARKER : FALSE_MARKER);
     }
 
+    /** Writes an integer value with its marker and 4-byte big-endian representation. */
     private void serializeInteger(Integer value, OutputStream output) throws IOException {
         output.write(INTEGER_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN);
@@ -157,6 +179,7 @@ public class LLSDBinarySerializer {
         output.write(buffer.array());
     }
 
+    /** Writes a double value with its marker and 8-byte big-endian representation. */
     private void serializeReal(Double value, OutputStream output) throws IOException {
         output.write(REAL_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
@@ -164,6 +187,7 @@ public class LLSDBinarySerializer {
         output.write(buffer.array());
     }
 
+    /** Writes a string value with its marker, a 4-byte length prefix, and UTF-8 bytes. */
     private void serializeString(String value, OutputStream output) throws IOException {
         output.write(STRING_MARKER);
         byte[] stringBytes = value.getBytes(StandardCharsets.UTF_8);
@@ -171,6 +195,7 @@ public class LLSDBinarySerializer {
         output.write(stringBytes);
     }
 
+    /** Writes a UUID value with its marker and 16-byte representation. */
     private void serializeUUID(UUID value, OutputStream output) throws IOException {
         output.write(UUID_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(16);
@@ -179,6 +204,7 @@ public class LLSDBinarySerializer {
         output.write(buffer.array());
     }
 
+    /** Writes a Date value with its marker and 8-byte double representation (seconds since epoch). */
     private void serializeDate(Date value, OutputStream output) throws IOException {
         output.write(DATE_MARKER);
         double secondsSinceEpoch = value.getTime() / 1000.0;
@@ -187,6 +213,7 @@ public class LLSDBinarySerializer {
         output.write(buffer.array());
     }
 
+    /** Writes a URI value with its marker, a 4-byte length prefix, and UTF-8 bytes. */
     private void serializeURI(URI value, OutputStream output) throws IOException {
         output.write(URI_MARKER);
         byte[] uriBytes = value.toString().getBytes(StandardCharsets.UTF_8);
@@ -194,12 +221,14 @@ public class LLSDBinarySerializer {
         output.write(uriBytes);
     }
 
+    /** Writes a binary data block with its marker, a 4-byte length prefix, and raw bytes. */
     private void serializeBinary(byte[] value, OutputStream output) throws IOException {
         output.write(BINARY_MARKER);
         writeInt32(output, value.length);
         output.write(value);
     }
 
+    /** Serializes a List into an LLSD array, enclosed in array markers. */
     @SuppressWarnings("unchecked")
     private void serializeArray(Object value, OutputStream output) throws IOException, LLSDException {
         List<Object> list = (List<Object>) value;
@@ -211,6 +240,7 @@ public class LLSDBinarySerializer {
         output.write(ARRAY_END_MARKER);
     }
 
+    /** Serializes a Map into an LLSD map, enclosed in map markers, with keys and values. */
     @SuppressWarnings("unchecked")
     private void serializeMap(Object value, OutputStream output) throws IOException, LLSDException {
         Map<String, Object> map = (Map<String, Object>) value;
@@ -229,6 +259,12 @@ public class LLSDBinarySerializer {
         output.write(MAP_END_MARKER);
     }
 
+    /**
+     * Helper method to write a 32-bit integer in big-endian format to the stream.
+     * @param output The stream to write to.
+     * @param value The integer value to write.
+     * @throws IOException if an I/O error occurs.
+     */
     private void writeInt32(OutputStream output, int value) throws IOException {
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN);
         buffer.putInt(value);

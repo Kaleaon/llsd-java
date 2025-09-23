@@ -13,21 +13,24 @@ import java.util.*;
 import java.util.UUID;
 
 /**
- * Enhanced LLSD type system converted from the Second Life/Firestorm C++ implementation.
- * 
- * <p>This class provides additional type definitions, constants, and utilities
- * that extend the basic LLSD type system with viewer-specific enhancements.</p>
- * 
- * <p>Key enhancements from the C++ viewer implementation:</p>
+ * Provides an enhanced type system for LLSD (Linden Lab Structured Data), based
+ * on the C++ implementation found in the Second Life viewer.
+ * <p>
+ * This class serves as a namespace for a collection of nested classes and enums
+ * that offer a more detailed and type-safe way to work with LLSD data than the
+ * basic Java object representation allows. It includes:
  * <ul>
- * <li>Extended type enumeration with viewer-specific types</li>
- * <li>Type conversion utilities with strict validation</li>
- * <li>Helper classes for type-safe LLSD construction</li>
- * <li>Advanced type checking and validation methods</li>
- * <li>Memory-efficient type handling</li>
+ *   <li>An extended {@link Type} enum with viewer-specific types like ULONG and UINT.</li>
+ *   <li>Utility classes for type detection ({@link TypeDetection}) and classification
+ *       ({@link TypeUtils}).</li>
+ *   <li>Type-safe builders for creating maps ({@link MapBuilder}) and arrays
+ *       ({@link ArrayBuilder}).</li>
+ *   <li>A {@link Factory} for convenient construction of LLSD objects.</li>
+ *   <li>A collection of useful {@link Constants}.</li>
  * </ul>
- * 
- * @since 1.0
+ * This class is final and cannot be instantiated.
+ *
+ * @see <a href="https://github.com/secondlife/viewer/blob/main/indra/llcommon/llsd.h">llsd.h</a>
  */
 public final class LLSDViewerTypes {
     
@@ -36,8 +39,9 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Enhanced LLSD type enumeration based on C++ LLSD::Type.
-     * Includes all standard LLSD types plus viewer-specific extensions.
+     * An enumeration of all supported LLSD data types, including extensions from
+     * the Second Life viewer. This provides a more granular type system than
+     * the standard LLSD specification.
      */
     public enum Type {
         /** Undefined/null value */
@@ -73,16 +77,16 @@ public final class LLSDViewerTypes {
         /** Array/list */
         ARRAY(10, "Array"),
         
-        /** Viewer extension: 64-bit unsigned integer */
+        /** A 64-bit unsigned integer (viewer-specific extension). */
         ULONG(11, "ULong"),
         
-        /** Viewer extension: 32-bit unsigned integer */
+        /** A 32-bit unsigned integer (viewer-specific extension). */
         UINT(12, "UInt"),
         
-        /** Viewer extension: 32-bit float */
+        /** A 32-bit single-precision float (viewer-specific extension). */
         FLOAT(13, "Float"),
         
-        /** Marker for end of enum */
+        /** A marker for the end of the type enumeration, not a real data type. */
         TYPE_END(14, "TypeEnd");
         
         private final int value;
@@ -100,11 +104,11 @@ public final class LLSDViewerTypes {
         public String toString() { return name; }
         
         /**
-         * Get Type enum from integer value.
-         * 
-         * @param value the integer value
-         * @return corresponding Type enum
-         * @throws IllegalArgumentException if value is invalid
+         * Retrieves a {@code Type} enum constant from its integer value.
+         *
+         * @param value The integer representation of the type.
+         * @return The corresponding {@code Type} enum constant.
+         * @throws IllegalArgumentException if the integer value does not match any known type.
          */
         public static Type fromValue(int value) {
             for (Type type : values()) {
@@ -117,35 +121,37 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Type classification utilities from C++ implementation.
+     * A utility class for classifying and comparing LLSD types.
      */
     public static class TypeUtils {
         
         /**
-         * Check if a type represents a scalar (non-container) value.
-         * 
-         * @param type the type to check
-         * @return true if scalar type
+         * Checks if a given {@link Type} is a scalar type (i.e., not a map, array, or undefined).
+         *
+         * @param type The type to check.
+         * @return {@code true} if the type is a scalar, {@code false} otherwise.
          */
         public static boolean isScalar(Type type) {
             return type != Type.MAP && type != Type.ARRAY && type != Type.UNDEFINED;
         }
         
         /**
-         * Check if a type represents a container (map or array).
-         * 
-         * @param type the type to check
-         * @return true if container type
+         * Checks if a given {@link Type} is a container type (i.e., a map or an array).
+         *
+         * @param type The type to check.
+         * @return {@code true} if the type is a container, {@code false} otherwise.
          */
         public static boolean isContainer(Type type) {
             return type == Type.MAP || type == Type.ARRAY;
         }
         
         /**
-         * Check if a type represents a numeric value.
-         * 
-         * @param type the type to check
-         * @return true if numeric type
+         * Checks if a given {@link Type} is a numeric type.
+         * <p>
+         * Numeric types include INTEGER, REAL, BOOLEAN, UINT, ULONG, and FLOAT.
+         *
+         * @param type The type to check.
+         * @return {@code true} if the type is numeric, {@code false} otherwise.
          */
         public static boolean isNumeric(Type type) {
             return type == Type.INTEGER || type == Type.REAL || 
@@ -154,10 +160,12 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Check if a type can be converted to string.
-         * 
-         * @param type the type to check
-         * @return true if string-convertible
+         * Checks if a given {@link Type} can be meaningfully converted to a string.
+         * <p>
+         * This includes all numeric types as well as STRING, UUID, DATE, and URI.
+         *
+         * @param type The type to check.
+         * @return {@code true} if the type can be converted to a string.
          */
         public static boolean isStringConvertible(Type type) {
             return type == Type.STRING || type == Type.BOOLEAN || 
@@ -168,10 +176,12 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Get the natural ordering priority for types (for comparison).
-         * 
-         * @param type the type to get priority for
-         * @return priority value (lower = higher priority)
+         * Gets the natural ordering priority for a type, used for comparisons.
+         * <p>
+         * Lower values indicate a higher priority (e.g., UNDEFINED is highest).
+         *
+         * @param type The type to get the priority for.
+         * @return An integer representing the type's priority.
          */
         public static int getTypePriority(Type type) {
             switch (type) {
@@ -195,15 +205,19 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Type detection utilities for Java objects.
+     * A utility class for detecting the LLSD type of a given Java object.
      */
     public static class TypeDetection {
         
         /**
-         * Detect the LLSD type of a Java object.
-         * 
-         * @param obj the object to analyze
-         * @return detected LLSD type
+         * Detects the most appropriate LLSD {@link Type} for a given Java object.
+         * <p>
+         * This method uses {@code instanceof} checks to determine the type. Note
+         * that it makes certain assumptions, such as mapping {@link Long} to
+         * {@link Type#ULONG}. Unknown object types default to {@link Type#STRING}.
+         *
+         * @param obj The object whose LLSD type is to be detected.
+         * @return The detected {@link Type}.
          */
         public static Type detectType(Object obj) {
             if (obj == null) {
@@ -239,22 +253,27 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Check if an object matches a specific LLSD type.
-         * 
-         * @param obj the object to check
-         * @param expectedType the expected type
-         * @return true if object matches type
+         * Checks if a Java object corresponds to a specific LLSD {@link Type}.
+         *
+         * @param obj          The object to check.
+         * @param expectedType The LLSD type to check against.
+         * @return {@code true} if the detected type of the object matches the
+         *         expected type, {@code false} otherwise.
          */
         public static boolean matchesType(Object obj, Type expectedType) {
             return detectType(obj) == expectedType;
         }
         
         /**
-         * Validate that an object can be safely converted to a type.
-         * 
-         * @param obj the object to validate
-         * @param targetType the target type
-         * @return true if conversion is safe
+         * Validates whether a Java object can be safely converted to a target LLSD type.
+         * <p>
+         * This method checks the convertibility based on rules from the C++
+         * viewer implementation (e.g., any numeric type can be converted to
+         * another numeric type, but binary can only be converted to binary).
+         *
+         * @param obj        The object to validate.
+         * @param targetType The target LLSD type for the conversion.
+         * @return {@code true} if the conversion is considered safe, {@code false} otherwise.
          */
         public static boolean canConvertTo(Object obj, Type targetType) {
             Type sourceType = detectType(obj);
@@ -295,16 +314,19 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Type-safe LLSD array builder, equivalent to C++ llsd::array().
+     * A type-safe builder for creating LLSD arrays (represented as {@code List<Object>}).
+     * <p>
+     * This class provides a fluent API for constructing arrays, ensuring that
+     * the final result is an immutable list.
      */
     public static class ArrayBuilder {
         private final List<Object> items = new ArrayList<>();
         
         /**
-         * Add an item to the array.
-         * 
-         * @param item the item to add
-         * @return this builder for chaining
+         * Adds a single item to the array.
+         *
+         * @param item The item to add.
+         * @return This {@code ArrayBuilder} instance for method chaining.
          */
         public ArrayBuilder add(Object item) {
             items.add(item);
@@ -312,10 +334,10 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Add multiple items to the array.
-         * 
-         * @param items the items to add
-         * @return this builder for chaining
+         * Adds multiple items to the array.
+         *
+         * @param items A varargs array of items to add.
+         * @return This {@code ArrayBuilder} instance for method chaining.
          */
         public ArrayBuilder addAll(Object... items) {
             Collections.addAll(this.items, items);
@@ -323,18 +345,18 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Build the final array.
-         * 
-         * @return immutable list representing the LLSD array
+         * Builds the final, immutable list from the items added to the builder.
+         *
+         * @return An unmodifiable {@link List} representing the LLSD array.
          */
         public List<Object> build() {
             return Collections.unmodifiableList(new ArrayList<>(items));
         }
         
         /**
-         * Get the current size of the array.
-         * 
-         * @return number of items
+         * Gets the current number of items in the builder.
+         *
+         * @return The size of the array being built.
          */
         public int size() {
             return items.size();
@@ -342,17 +364,20 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Type-safe LLSD map builder, equivalent to C++ LLSDMap.
+     * A type-safe builder for creating LLSD maps (represented as {@code Map<String, Object>}).
+     * <p>
+     * This class provides a fluent API for constructing maps and returns an
+     * immutable map upon completion.
      */
     public static class MapBuilder {
         private final Map<String, Object> entries = new HashMap<>();
         
         /**
-         * Add a key-value pair to the map.
-         * 
-         * @param key the key
-         * @param value the value
-         * @return this builder for chaining
+         * Adds or updates a key-value pair in the map.
+         *
+         * @param key   The string key for the entry.
+         * @param value The object value for the entry.
+         * @return This {@code MapBuilder} instance for method chaining.
          */
         public MapBuilder put(String key, Object value) {
             entries.put(key, value);
@@ -360,10 +385,10 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Add all entries from another map.
-         * 
-         * @param map the source map
-         * @return this builder for chaining
+         * Adds all key-value pairs from another map to this builder.
+         *
+         * @param map The map containing the entries to add.
+         * @return This {@code MapBuilder} instance for method chaining.
          */
         public MapBuilder putAll(Map<String, Object> map) {
             entries.putAll(map);
@@ -371,10 +396,10 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Remove a key from the map.
-         * 
-         * @param key the key to remove
-         * @return this builder for chaining
+         * Removes an entry from the map by its key.
+         *
+         * @param key The key of the entry to remove.
+         * @return This {@code MapBuilder} instance for method chaining.
          */
         public MapBuilder remove(String key) {
             entries.remove(key);
@@ -382,28 +407,28 @@ public final class LLSDViewerTypes {
         }
         
         /**
-         * Check if the map contains a key.
-         * 
-         * @param key the key to check
-         * @return true if key exists
+         * Checks if the map being built contains the specified key.
+         *
+         * @param key The key to check for.
+         * @return {@code true} if the key exists, {@code false} otherwise.
          */
         public boolean containsKey(String key) {
             return entries.containsKey(key);
         }
         
         /**
-         * Build the final map.
-         * 
-         * @return immutable map representing the LLSD map
+         * Builds the final, immutable map from the entries added to the builder.
+         *
+         * @return An unmodifiable {@link Map} representing the LLSD map.
          */
         public Map<String, Object> build() {
             return Collections.unmodifiableMap(new HashMap<>(entries));
         }
         
         /**
-         * Get the current size of the map.
-         * 
-         * @return number of entries
+         * Gets the current number of entries in the builder.
+         *
+         * @return The size of the map being built.
          */
         public int size() {
             return entries.size();
@@ -411,65 +436,69 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Convenience factory methods for creating LLSD structures.
-     * Equivalent to C++ llsd namespace functions.
+     * A factory class providing convenient static methods for creating LLSD
+     * builders and performing cloning operations.
      */
     public static class Factory {
         
         /**
-         * Create an empty LLSD array.
-         * 
-         * @return new ArrayBuilder
+         * Creates a new, empty {@link ArrayBuilder}.
+         *
+         * @return A new instance of {@code ArrayBuilder}.
          */
         public static ArrayBuilder array() {
             return new ArrayBuilder();
         }
         
         /**
-         * Create an LLSD array with initial items.
-         * 
-         * @param items initial items
-         * @return new ArrayBuilder with items
+         * Creates a new {@link ArrayBuilder} pre-populated with the given items.
+         *
+         * @param items The initial items to add to the array.
+         * @return A new instance of {@code ArrayBuilder}.
          */
         public static ArrayBuilder array(Object... items) {
             return new ArrayBuilder().addAll(items);
         }
         
         /**
-         * Create an empty LLSD map.
-         * 
-         * @return new MapBuilder
+         * Creates a new, empty {@link MapBuilder}.
+         *
+         * @return A new instance of {@code MapBuilder}.
          */
         public static MapBuilder map() {
             return new MapBuilder();
         }
         
         /**
-         * Create an LLSD map with initial key-value pair.
-         * 
-         * @param key initial key
-         * @param value initial value
-         * @return new MapBuilder with entry
+         * Creates a new {@link MapBuilder} pre-populated with an initial key-value pair.
+         *
+         * @param key   The initial key.
+         * @param value The initial value.
+         * @return A new instance of {@code MapBuilder}.
          */
         public static MapBuilder map(String key, Object value) {
             return new MapBuilder().put(key, value);
         }
         
         /**
-         * Create a deep copy of an LLSD structure.
-         * 
-         * @param source the source object
-         * @return deep copy of the source
+         * Creates a deep copy of an LLSD data structure.
+         * <p>
+         * This is a convenience method that delegates to {@link LLSDViewerUtils#llsdClone(Object)}.
+         *
+         * @param source The object to be copied.
+         * @return A deep copy of the source object.
          */
         public static Object clone(Object source) {
             return LLSDViewerUtils.llsdClone(source);
         }
         
         /**
-         * Create a shallow copy of an LLSD structure.
-         * 
-         * @param source the source object
-         * @return shallow copy of the source
+         * Creates a shallow copy of an LLSD data structure.
+         * <p>
+         * This is a convenience method that delegates to {@link LLSDViewerUtils#llsdShallow(Object)}.
+         *
+         * @param source The object to be copied.
+         * @return A shallow copy of the source object.
          */
         public static Object shallow(Object source) {
             return LLSDViewerUtils.llsdShallow(source);
@@ -477,7 +506,8 @@ public final class LLSDViewerTypes {
     }
     
     /**
-     * Constants for commonly used LLSD values from viewer implementation.
+     * A collection of commonly used constants in LLSD, including pre-instantiated
+     * empty or zero-value objects and safety limits derived from the viewer.
      */
     public static class Constants {
         
@@ -514,16 +544,16 @@ public final class LLSDViewerTypes {
         /** Minimum safe integer value for LLSD */
         public static final int MIN_SAFE_INTEGER = Integer.MIN_VALUE;
         
-        /** Maximum safe string length (from viewer limits) */
+        /** The maximum safe string length, derived from viewer limits. */
         public static final int MAX_SAFE_STRING_LENGTH = 65535;
         
-        /** Maximum safe array size (from viewer limits) */
+        /** The maximum safe array size, derived from viewer limits. */
         public static final int MAX_SAFE_ARRAY_SIZE = 65535;
         
-        /** Maximum safe map size (from viewer limits) */
+        /** The maximum safe map size, derived from viewer limits. */
         public static final int MAX_SAFE_MAP_SIZE = 65535;
         
-        /** Maximum safe binary size (from viewer limits) */
-        public static final int MAX_SAFE_BINARY_SIZE = 16 * 1024 * 1024; // 16MB
+        /** The maximum safe binary size (16MB), derived from viewer limits. */
+        public static final int MAX_SAFE_BINARY_SIZE = 16 * 1024 * 1024;
     }
 }

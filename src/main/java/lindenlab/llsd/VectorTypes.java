@@ -8,14 +8,25 @@
 package lindenlab.llsd;
 
 /**
- * Two-dimensional vector
+ * Represents an immutable two-dimensional vector with single-precision components.
+ * <p>
+ * This class is a simple value object for holding 2D vector data, often used
+ * for texture coordinates or 2D positions.
  */
-class Vector2 {
+public final class Vector2 {
+    /** A vector with all components set to zero. */
     public static final Vector2 ZERO = new Vector2(0.0f, 0.0f);
     
+    /** The x-component of the vector. */
     public final float x;
+    /** The y-component of the vector. */
     public final float y;
     
+    /**
+     * Constructs a new Vector2 with the specified components.
+     * @param x The x-component.
+     * @param y The y-component.
+     */
     public Vector2(float x, float y) {
         this.x = x;
         this.y = y;
@@ -43,15 +54,27 @@ class Vector2 {
 }
 
 /**
- * Three-dimensional vector  
+ * Represents an immutable three-dimensional vector with single-precision components.
+ * <p>
+ * This class is used for 3D positions, directions, and other spatial calculations.
  */
-class Vector3 {
+public final class Vector3 {
+    /** A vector with all components set to zero. */
     public static final Vector3 ZERO = new Vector3(0.0f, 0.0f, 0.0f);
     
+    /** The x-component of the vector. */
     public final float x;
+    /** The y-component of the vector. */
     public final float y;
+    /** The z-component of the vector. */
     public final float z;
-    
+
+    /**
+     * Constructs a new Vector3 with the specified components.
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
+     */
     public Vector3(float x, float y, float z) {
         this.x = x;
         this.y = y;
@@ -83,16 +106,28 @@ class Vector3 {
 }
 
 /**
- * Four-dimensional vector
+ * Represents an immutable four-dimensional vector with single-precision components.
  */
-class Vector4 {
+public final class Vector4 {
+    /** A vector with all components set to zero. */
     public static final Vector4 ZERO = new Vector4(0.0f, 0.0f, 0.0f, 0.0f);
     
+    /** The x-component of the vector. */
     public final float x;
+    /** The y-component of the vector. */
     public final float y;
+    /** The z-component of the vector. */
     public final float z;
+    /** The w-component of the vector. */
     public final float w;
-    
+
+    /**
+     * Constructs a new Vector4 with the specified components.
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
+     * @param w The w-component.
+     */
     public Vector4(float x, float y, float z, float w) {
         this.x = x;
         this.y = y;
@@ -127,16 +162,28 @@ class Vector4 {
 }
 
 /**
- * Quaternion for 3D rotation
+ * Represents an immutable quaternion used for 3D rotations.
  */
-class Quaternion {
+public final class Quaternion {
+    /** The identity quaternion, representing no rotation. */
     public static final Quaternion IDENTITY = new Quaternion(0.0f, 0.0f, 0.0f, 1.0f);
     
+    /** The x-component of the quaternion. */
     public final float x;
+    /** The y-component of the quaternion. */
     public final float y;
+    /** The z-component of the quaternion. */
     public final float z;
+    /** The w-component (scalar part) of the quaternion. */
     public final float w;
-    
+
+    /**
+     * Constructs a new Quaternion with the specified components.
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
+     * @param w The w-component.
+     */
     public Quaternion(float x, float y, float z, float w) {
         this.x = x;
         this.y = y;
@@ -171,17 +218,32 @@ class Quaternion {
 }
 
 /**
- * RGBA Color
+ * Represents an immutable RGBA color with single-precision components.
+ * <p>
+ * Components are typically in the range [0.0, 1.0].
  */
-class Color4 {
+public final class Color4 {
+    /** The color black (R=0, G=0, B=0, A=1). */
     public static final Color4 BLACK = new Color4(0.0f, 0.0f, 0.0f, 1.0f);
+    /** The color white (R=1, G=1, B=1, A=1). */
     public static final Color4 WHITE = new Color4(1.0f, 1.0f, 1.0f, 1.0f);
     
+    /** The red component of the color. */
     public final float r;
+    /** The green component of the color. */
     public final float g;
+    /** The blue component of the color. */
     public final float b;
+    /** The alpha (transparency) component of the color. */
     public final float a;
-    
+
+    /**
+     * Constructs a new Color4 with the specified components.
+     * @param r The red component.
+     * @param g The green component.
+     * @param b The blue component.
+     * @param a The alpha component.
+     */
     public Color4(float r, float g, float b, float a) {
         this.r = r;
         this.g = g;

@@ -11,12 +11,15 @@ package lindenlab.llsd.viewer.secondlife.engine;
 import java.util.Objects;
 
 /**
- * Quaternion class for representing 3D rotations.
- * 
- * <p>This class provides comprehensive quaternion functionality required
- * for Second Life's 3D rotation calculations and animations.</p>
- * 
- * @since 1.0
+ * Represents a quaternion, a mathematical construct used for representing 3D rotations.
+ * <p>
+ * This class provides a comprehensive set of methods for quaternion arithmetic,
+ * including multiplication, normalization, and interpolation (slerp and lerp).
+ * It also includes methods for converting between different rotation representations,
+ * such as axis-angle, Euler angles, and rotation matrices.
+ * <p>
+ * Quaternions are used extensively in 3D graphics and physics to avoid issues
+ * like gimbal lock that can occur with Euler angles.
  */
 public class Quaternion {
     
@@ -30,7 +33,12 @@ public class Quaternion {
     public final double w;
     
     /**
-     * Construct a quaternion with specified components.
+     * Constructs a new quaternion with the specified components.
+     *
+     * @param x The x-component (imaginary part).
+     * @param y The y-component (imaginary part).
+     * @param z The z-component (imaginary part).
+     * @param w The w-component (real part).
      */
     public Quaternion(double x, double y, double z, double w) {
         this.x = x;
@@ -40,7 +48,10 @@ public class Quaternion {
     }
     
     /**
-     * Construct a quaternion from an array [x, y, z, w].
+     * Constructs a new quaternion from a 4-element array in [x, y, z, w] order.
+     *
+     * @param components An array containing the x, y, z, and w components.
+     * @throws IllegalArgumentException if the array does not have exactly 4 components.
      */
     public Quaternion(double[] components) {
         if (components.length != 4) {
@@ -53,7 +64,9 @@ public class Quaternion {
     }
     
     /**
-     * Copy constructor.
+     * Constructs a new quaternion as a copy of another quaternion.
+     *
+     * @param other The quaternion to copy.
      */
     public Quaternion(Quaternion other) {
         this.x = other.x;
@@ -63,7 +76,11 @@ public class Quaternion {
     }
     
     /**
-     * Create quaternion from axis and angle (in radians).
+     * Creates a new quaternion representing a rotation around a specified axis.
+     *
+     * @param axis  The axis of rotation. This vector should be normalized.
+     * @param angle The angle of rotation in radians.
+     * @return A new {@code Quaternion} representing the rotation.
      */
     public static Quaternion fromAxisAngle(Vector3 axis, double angle) {
         Vector3 normalizedAxis = axis.normalize();
@@ -79,7 +96,14 @@ public class Quaternion {
     }
     
     /**
-     * Create quaternion from Euler angles (in radians) - ZYX order.
+     * Creates a new quaternion from a set of Euler angles.
+     * <p>
+     * The rotation order is assumed to be ZYX (yaw, pitch, roll), which is common in many 3D systems.
+     *
+     * @param pitch The rotation around the x-axis in radians.
+     * @param yaw   The rotation around the y-axis in radians.
+     * @param roll  The rotation around the z-axis in radians.
+     * @return A new {@code Quaternion} representing the combined rotation.
      */
     public static Quaternion fromEulerAngles(double pitch, double yaw, double roll) {
         double cp = Math.cos(pitch * 0.5);
@@ -98,7 +122,11 @@ public class Quaternion {
     }
     
     /**
-     * Create quaternion from rotation matrix (3x3).
+     * Creates a new quaternion from a 3x3 rotation matrix.
+     *
+     * @param matrix A 3x3 array representing the rotation matrix.
+     * @return A new {@code Quaternion} representing the same rotation.
+     * @throws IllegalArgumentException if the matrix is not 3x3.
      */
     public static Quaternion fromMatrix3(double[][] matrix) {
         if (matrix.length != 3 || matrix[0].length != 3) {
@@ -143,7 +171,13 @@ public class Quaternion {
     }
     
     /**
-     * Multiply two quaternions.
+     * Multiplies this quaternion by another quaternion.
+     * <p>
+     * Quaternion multiplication is not commutative. The order {@code this * other}
+     * represents applying the rotation of {@code other} followed by the rotation of {@code this}.
+     *
+     * @param other The quaternion to multiply by.
+     * @return A new {@code Quaternion} representing the combined rotation.
      */
     public Quaternion multiply(Quaternion other) {
         return new Quaternion(
@@ -155,42 +189,63 @@ public class Quaternion {
     }
     
     /**
-     * Add two quaternions.
+     * Adds another quaternion to this one, component-wise.
+     *
+     * @param other The quaternion to add.
+     * @return A new {@code Quaternion} representing the sum.
      */
     public Quaternion add(Quaternion other) {
         return new Quaternion(x + other.x, y + other.y, z + other.z, w + other.w);
     }
     
     /**
-     * Subtract another quaternion from this one.
+     * Subtracts another quaternion from this one, component-wise.
+     *
+     * @param other The quaternion to subtract.
+     * @return A new {@code Quaternion} representing the difference.
      */
     public Quaternion subtract(Quaternion other) {
         return new Quaternion(x - other.x, y - other.y, z - other.z, w - other.w);
     }
     
     /**
-     * Scale quaternion by scalar.
+     * Scales all components of this quaternion by a scalar value.
+     *
+     * @param scalar The scalar value to multiply by.
+     * @return A new, scaled {@code Quaternion}.
      */
     public Quaternion scale(double scalar) {
         return new Quaternion(x * scalar, y * scalar, z * scalar, w * scalar);
     }
     
     /**
-     * Calculate the squared norm.
+     * Calculates the squared norm (magnitude) of the quaternion.
+     * <p>
+     * This is computationally cheaper than {@link #norm()} as it avoids a square root.
+     *
+     * @return The squared norm.
      */
     public double normSquared() {
         return x * x + y * y + z * z + w * w;
     }
     
     /**
-     * Calculate the norm (magnitude).
+     * Calculates the norm (or magnitude or length) of the quaternion.
+     *
+     * @return The norm of the quaternion.
      */
     public double norm() {
         return Math.sqrt(normSquared());
     }
     
     /**
-     * Normalize the quaternion.
+     * Normalizes the quaternion to have a magnitude of 1.
+     * <p>
+     * A normalized quaternion is also known as a unit quaternion and is required
+     * for it to represent a pure rotation.
+     *
+     * @return A new, normalized {@code Quaternion}. Returns the identity quaternion
+     *         if the norm is close to zero.
      */
     public Quaternion normalize() {
         double n = norm();
@@ -201,14 +256,23 @@ public class Quaternion {
     }
     
     /**
-     * Calculate the conjugate.
+     * Calculates the conjugate of this quaternion.
+     * <p>
+     * The conjugate has its vector part negated (x, y, z) and is used in
+     * calculating the inverse and for vector rotation.
+     *
+     * @return A new {@code Quaternion} that is the conjugate of this one.
      */
     public Quaternion conjugate() {
         return new Quaternion(-x, -y, -z, w);
     }
     
     /**
-     * Calculate the inverse.
+     * Calculates the inverse of this quaternion.
+     * <p>
+     * For a unit quaternion, the inverse is equal to its conjugate.
+     *
+     * @return A new {@code Quaternion} that is the inverse of this one.
      */
     public Quaternion inverse() {
         double normSq = normSquared();
@@ -219,7 +283,10 @@ public class Quaternion {
     }
     
     /**
-     * Rotate a vector by this quaternion.
+     * Rotates a 3D vector by this quaternion.
+     *
+     * @param vector The vector to be rotated.
+     * @return A new {@link Vector3} representing the rotated vector.
      */
     public Vector3 rotate(Vector3 vector) {
         // Convert vector to quaternion
@@ -232,14 +299,25 @@ public class Quaternion {
     }
     
     /**
-     * Calculate dot product with another quaternion.
+     * Calculates the dot product of this quaternion with another.
+     *
+     * @param other The other quaternion.
+     * @return The dot product.
      */
     public double dot(Quaternion other) {
         return x * other.x + y * other.y + z * other.z + w * other.w;
     }
     
     /**
-     * Spherical linear interpolation between two quaternions.
+     * Performs spherical linear interpolation (Slerp) between this quaternion
+     * and a target quaternion.
+     * <p>
+     * Slerp provides a smooth interpolation along the shortest arc on a 4D sphere,
+     * resulting in a constant-speed rotation.
+     *
+     * @param target The target quaternion to interpolate towards.
+     * @param t      The interpolation factor, clamped to the range [0, 1].
+     * @return A new {@code Quaternion} representing the interpolated rotation.
      */
     public Quaternion slerp(Quaternion target, double t) {
         t = Math.max(0.0, Math.min(1.0, t)); // Clamp t to [0,1]
@@ -270,7 +348,16 @@ public class Quaternion {
     }
     
     /**
-     * Linear interpolation between two quaternions.
+     * Performs normalized linear interpolation (Nlerp) between this quaternion
+     * and a target quaternion.
+     * <p>
+     * Nlerp is computationally cheaper than Slerp but does not result in
+     * constant-speed rotation. It is often a good approximation for small
+     * rotational differences.
+     *
+     * @param target The target quaternion to interpolate towards.
+     * @param t      The interpolation factor, clamped to the range [0, 1].
+     * @return A new, normalized {@code Quaternion} representing the interpolated rotation.
      */
     public Quaternion lerp(Quaternion target, double t) {
         t = Math.max(0.0, Math.min(1.0, t)); // Clamp t to [0,1]
@@ -286,7 +373,9 @@ public class Quaternion {
     }
     
     /**
-     * Convert to axis-angle representation.
+     * Converts this quaternion into its axis-angle representation.
+     *
+     * @return An {@link AxisAngle} object containing the axis and the angle in radians.
      */
     public AxisAngle toAxisAngle() {
         Quaternion q = normalize();
@@ -304,7 +393,12 @@ public class Quaternion {
     }
     
     /**
-     * Convert to Euler angles (in radians) - ZYX order.
+     * Converts this quaternion into its Euler angle representation (pitch, yaw, roll).
+     * <p>
+     * The rotation order is ZYX (yaw, pitch, roll). Be aware of potential gimbal
+     * lock issues when converting to Euler angles.
+     *
+     * @return An {@link EulerAngles} object containing the angles in radians.
      */
     public EulerAngles toEulerAngles() {
         Quaternion q = normalize();
@@ -332,14 +426,18 @@ public class Quaternion {
     }
     
     /**
-     * Check if quaternion is normalized (unit quaternion).
+     * Checks if this quaternion is normalized (i.e., has a magnitude of approximately 1).
+     *
+     * @return {@code true} if the quaternion is a unit quaternion, {@code false} otherwise.
      */
     public boolean isNormalized() {
         return Math.abs(norm() - 1.0) < EPSILON;
     }
     
     /**
-     * Check if quaternion represents identity rotation.
+     * Checks if this quaternion represents an identity rotation (i.e., no rotation).
+     *
+     * @return {@code true} if it is the identity quaternion, {@code false} otherwise.
      */
     public boolean isIdentity() {
         return Math.abs(x) < EPSILON && Math.abs(y) < EPSILON && 
@@ -347,14 +445,18 @@ public class Quaternion {
     }
     
     /**
-     * Convert to array representation [x, y, z, w].
+     * Converts this quaternion to a 4-element array of its components.
+     *
+     * @return A new array {@code [x, y, z, w]}.
      */
     public double[] toArray() {
         return new double[]{x, y, z, w};
     }
     
     /**
-     * Convert to 3x3 rotation matrix.
+     * Converts this quaternion into an equivalent 3x3 rotation matrix.
+     *
+     * @return A new 3x3 array representing the rotation matrix.
      */
     public double[][] toMatrix3() {
         Quaternion q = normalize();
@@ -377,7 +479,11 @@ public class Quaternion {
     }
     
     /**
-     * Parse quaternion from string representation "x,y,z,w".
+     * Parses a quaternion from a string of comma-separated values.
+     *
+     * @param str The string to parse, in the format "x, y, z, w".
+     * @return A new {@code Quaternion} parsed from the string.
+     * @throws IllegalArgumentException if the string is not in the correct format.
      */
     public static Quaternion parse(String str) {
         if (str == null || str.trim().isEmpty()) {
@@ -402,7 +508,7 @@ public class Quaternion {
     }
     
     /**
-     * Axis-angle representation.
+     * A simple container class to hold an axis-angle representation of a rotation.
      */
     public static class AxisAngle {
         public final Vector3 axis;
@@ -415,12 +521,15 @@ public class Quaternion {
     }
     
     /**
-     * Euler angles representation.
+     * A simple container class to hold an Euler angle representation of a rotation.
      */
     public static class EulerAngles {
-        public final double pitch; // X-axis rotation
-        public final double yaw;   // Z-axis rotation  
-        public final double roll;  // Y-axis rotation
+        /** Rotation around the x-axis. */
+        public final double pitch;
+        /** Rotation around the y-axis. */
+        public final double yaw;
+        /** Rotation around the z-axis. */
+        public final double roll;
         
         public EulerAngles(double pitch, double yaw, double roll) {
             this.pitch = pitch;
@@ -456,7 +565,9 @@ public class Quaternion {
     }
     
     /**
-     * Short string representation for debugging.
+     * Returns a compact string representation of the quaternion, formatted to two decimal places.
+     *
+     * @return A short string representation for debugging.
      */
     public String toShortString() {
         return String.format("(%.2f, %.2f, %.2f, %.2f)", x, y, z, w);

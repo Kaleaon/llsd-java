@@ -11,12 +11,14 @@ package lindenlab.llsd.viewer.secondlife.engine;
 import java.util.Objects;
 
 /**
- * Three-dimensional vector class with mathematical operations.
- * 
- * <p>This class provides comprehensive 3D vector functionality required
- * for Second Life's 3D rendering and physics calculations.</p>
- * 
- * @since 1.0
+ * Represents an immutable three-dimensional vector with double-precision components.
+ * <p>
+ * This class provides a comprehensive set of methods for 3D vector mathematics,
+ * essential for calculations in 3D graphics and physics, such as positions,
+ * directions, and velocities.
+ * <p>
+ * All operations on a {@code Vector3} object produce a new {@code Vector3} object;
+ * the original object is never modified.
  */
 public class Vector3 {
     
@@ -33,7 +35,11 @@ public class Vector3 {
     public final double z;
     
     /**
-     * Construct a vector with specified components.
+     * Constructs a new vector with the specified components.
+     *
+     * @param x The x-component.
+     * @param y The y-component.
+     * @param z The z-component.
      */
     public Vector3(double x, double y, double z) {
         this.x = x;
@@ -42,7 +48,10 @@ public class Vector3 {
     }
     
     /**
-     * Construct a vector from an array.
+     * Constructs a new vector from a 3-element array.
+     *
+     * @param components An array containing the x, y, and z components.
+     * @throws IllegalArgumentException if the array does not have exactly 3 components.
      */
     public Vector3(double[] components) {
         if (components.length != 3) {
@@ -54,7 +63,9 @@ public class Vector3 {
     }
     
     /**
-     * Copy constructor.
+     * Constructs a new vector as a copy of another vector.
+     *
+     * @param other The vector to copy.
      */
     public Vector3(Vector3 other) {
         this.x = other.x;
@@ -63,35 +74,52 @@ public class Vector3 {
     }
     
     /**
-     * Add two vectors.
+     * Adds another vector to this one, component-wise.
+     *
+     * @param other The vector to add.
+     * @return A new {@code Vector3} representing the sum.
      */
     public Vector3 add(Vector3 other) {
         return new Vector3(x + other.x, y + other.y, z + other.z);
     }
     
     /**
-     * Subtract another vector from this one.
+     * Subtracts another vector from this one, component-wise.
+     *
+     * @param other The vector to subtract.
+     * @return A new {@code Vector3} representing the difference.
      */
     public Vector3 subtract(Vector3 other) {
         return new Vector3(x - other.x, y - other.y, z - other.z);
     }
     
     /**
-     * Multiply by scalar.
+     * Multiplies this vector by a scalar value.
+     *
+     * @param scalar The scalar to multiply by.
+     * @return A new, scaled {@code Vector3}.
      */
     public Vector3 multiply(double scalar) {
         return new Vector3(x * scalar, y * scalar, z * scalar);
     }
     
     /**
-     * Component-wise multiplication.
+     * Performs a component-wise multiplication (Hadamard product) with another vector.
+     *
+     * @param other The vector to multiply by.
+     * @return A new {@code Vector3} where each component is the product of the
+     *         corresponding components of the two vectors.
      */
     public Vector3 multiply(Vector3 other) {
         return new Vector3(x * other.x, y * other.y, z * other.z);
     }
     
     /**
-     * Divide by scalar.
+     * Divides this vector by a scalar value.
+     *
+     * @param scalar The scalar to divide by.
+     * @return A new, scaled {@code Vector3}.
+     * @throws ArithmeticException if {@code scalar} is zero or near-zero.
      */
     public Vector3 divide(double scalar) {
         if (Math.abs(scalar) < EPSILON) {
@@ -101,7 +129,11 @@ public class Vector3 {
     }
     
     /**
-     * Component-wise division.
+     * Performs a component-wise division by another vector.
+     *
+     * @param other The vector to divide by.
+     * @return A new {@code Vector3} where each component is the result of the division.
+     * @throws ArithmeticException if any component of {@code other} is zero or near-zero.
      */
     public Vector3 divide(Vector3 other) {
         if (Math.abs(other.x) < EPSILON || Math.abs(other.y) < EPSILON || Math.abs(other.z) < EPSILON) {
@@ -111,21 +143,29 @@ public class Vector3 {
     }
     
     /**
-     * Negate the vector.
+     * Negates this vector by flipping the sign of each component.
+     *
+     * @return A new {@code Vector3} with all components negated.
      */
     public Vector3 negate() {
         return new Vector3(-x, -y, -z);
     }
     
     /**
-     * Calculate dot product.
+     * Calculates the dot product of this vector with another.
+     *
+     * @param other The other vector.
+     * @return The dot product.
      */
     public double dot(Vector3 other) {
         return x * other.x + y * other.y + z * other.z;
     }
     
     /**
-     * Calculate cross product.
+     * Calculates the cross product of this vector with another.
+     *
+     * @param other The other vector.
+     * @return A new {@code Vector3} that is perpendicular to both input vectors.
      */
     public Vector3 cross(Vector3 other) {
         return new Vector3(
@@ -136,21 +176,30 @@ public class Vector3 {
     }
     
     /**
-     * Calculate the squared magnitude.
+     * Calculates the squared magnitude (length) of this vector.
+     * <p>
+     * This is computationally cheaper than {@link #magnitude()} as it avoids a square root.
+     *
+     * @return The squared magnitude.
      */
     public double magnitudeSquared() {
         return x * x + y * y + z * z;
     }
     
     /**
-     * Calculate the magnitude.
+     * Calculates the magnitude (or length) of this vector.
+     *
+     * @return The magnitude.
      */
     public double magnitude() {
         return Math.sqrt(magnitudeSquared());
     }
     
     /**
-     * Normalize the vector.
+     * Normalizes this vector to have a magnitude of 1.
+     *
+     * @return A new {@code Vector3} with the same direction but a magnitude of 1.
+     *         Returns a zero vector if the original magnitude is close to zero.
      */
     public Vector3 normalize() {
         double mag = magnitude();
@@ -161,21 +210,33 @@ public class Vector3 {
     }
     
     /**
-     * Calculate distance to another vector.
+     * Calculates the Euclidean distance between this vector and another.
+     *
+     * @param other The other vector.
+     * @return The distance between the two vectors.
      */
     public double distance(Vector3 other) {
         return subtract(other).magnitude();
     }
     
     /**
-     * Calculate squared distance to another vector.
+     * Calculates the squared Euclidean distance between this vector and another.
+     * <p>
+     * This is computationally cheaper than {@link #distance(Vector3)}.
+     *
+     * @param other The other vector.
+     * @return The squared distance.
      */
     public double distanceSquared(Vector3 other) {
         return subtract(other).magnitudeSquared();
     }
     
     /**
-     * Linear interpolation between two vectors.
+     * Performs a linear interpolation between this vector and a target vector.
+     *
+     * @param target The target vector to interpolate towards.
+     * @param t      The interpolation factor, clamped to the range [0, 1].
+     * @return A new {@code Vector3} representing the interpolated vector.
      */
     public Vector3 lerp(Vector3 target, double t) {
         t = Math.max(0.0, Math.min(1.0, t)); // Clamp t to [0,1]
@@ -183,7 +244,15 @@ public class Vector3 {
     }
     
     /**
-     * Spherical linear interpolation between two vectors.
+     * Performs a spherical linear interpolation between this vector and a target vector.
+     * <p>
+     * This method interpolates along the arc between the two vectors, which is useful
+     * for constant-speed rotation of direction vectors. Both vectors are normalized
+     * before interpolation.
+     *
+     * @param target The target vector to interpolate towards.
+     * @param t      The interpolation factor, clamped to the range [0, 1].
+     * @return A new {@code Vector3} representing the interpolated vector.
      */
     public Vector3 slerp(Vector3 target, double t) {
         t = Math.max(0.0, Math.min(1.0, t)); // Clamp t to [0,1]
@@ -212,21 +281,28 @@ public class Vector3 {
     }
     
     /**
-     * Check if vector is zero (within epsilon).
+     * Checks if this vector is a zero vector (all components are close to zero).
+     *
+     * @return {@code true} if the vector is a zero vector, {@code false} otherwise.
      */
     public boolean isZero() {
         return Math.abs(x) < EPSILON && Math.abs(y) < EPSILON && Math.abs(z) < EPSILON;
     }
     
     /**
-     * Check if vector is normalized (unit length).
+     * Checks if this vector is normalized (has a magnitude of approximately 1).
+     *
+     * @return {@code true} if the vector is a unit vector, {@code false} otherwise.
      */
     public boolean isNormalized() {
         return Math.abs(magnitude() - 1.0) < EPSILON;
     }
     
     /**
-     * Project this vector onto another vector.
+     * Projects this vector onto another vector.
+     *
+     * @param onto The vector to project onto.
+     * @return A new {@code Vector3} representing the projection.
      */
     public Vector3 project(Vector3 onto) {
         double ontoMagSq = onto.magnitudeSquared();
@@ -237,14 +313,20 @@ public class Vector3 {
     }
     
     /**
-     * Reflect this vector off a surface with given normal.
+     * Reflects this vector off a surface defined by a normal vector.
+     *
+     * @param normal The normal of the surface.
+     * @return A new {@code Vector3} representing the reflected vector.
      */
     public Vector3 reflect(Vector3 normal) {
         return subtract(normal.multiply(2.0 * dot(normal)));
     }
     
     /**
-     * Get the angle between this vector and another (in radians).
+     * Calculates the angle in radians between this vector and another.
+     *
+     * @param other The other vector.
+     * @return The angle in radians.
      */
     public double angleTo(Vector3 other) {
         Vector3 a = normalize();
@@ -253,14 +335,20 @@ public class Vector3 {
     }
     
     /**
-     * Convert to array representation.
+     * Converts this vector to a 3-element array of its components.
+     *
+     * @return A new array {@code [x, y, z]}.
      */
     public double[] toArray() {
         return new double[]{x, y, z};
     }
     
     /**
-     * Get component by index (0=x, 1=y, 2=z).
+     * Gets a component of this vector by its index.
+     *
+     * @param index The index of the component (0 for x, 1 for y, 2 for z).
+     * @return The value of the component.
+     * @throws IndexOutOfBoundsException if the index is not 0, 1, or 2.
      */
     public double getComponent(int index) {
         switch (index) {
@@ -272,22 +360,41 @@ public class Vector3 {
     }
     
     /**
-     * Create vector with component replaced.
+     * Creates a new vector with the x-component replaced by a new value.
+     *
+     * @param newX The new x-component value.
+     * @return A new {@code Vector3} with the updated component.
      */
     public Vector3 withX(double newX) {
         return new Vector3(newX, y, z);
     }
     
+    /**
+     * Creates a new vector with the y-component replaced by a new value.
+     *
+     * @param newY The new y-component value.
+     * @return A new {@code Vector3} with the updated component.
+     */
     public Vector3 withY(double newY) {
         return new Vector3(x, newY, z);
     }
     
+    /**
+     * Creates a new vector with the z-component replaced by a new value.
+     *
+     * @param newZ The new z-component value.
+     * @return A new {@code Vector3} with the updated component.
+     */
     public Vector3 withZ(double newZ) {
         return new Vector3(x, y, newZ);
     }
     
     /**
-     * Calculate minimum components.
+     * Creates a new vector containing the minimum components from two vectors.
+     *
+     * @param a The first vector.
+     * @param b The second vector.
+     * @return A new {@code Vector3} with components {@code (min(a.x, b.x), min(a.y, b.y), min(a.z, b.z))}.
      */
     public static Vector3 min(Vector3 a, Vector3 b) {
         return new Vector3(
@@ -298,7 +405,11 @@ public class Vector3 {
     }
     
     /**
-     * Calculate maximum components.
+     * Creates a new vector containing the maximum components from two vectors.
+     *
+     * @param a The first vector.
+     * @param b The second vector.
+     * @return A new {@code Vector3} with components {@code (max(a.x, b.x), max(a.y, b.y), max(a.z, b.z))}.
      */
     public static Vector3 max(Vector3 a, Vector3 b) {
         return new Vector3(
@@ -309,7 +420,11 @@ public class Vector3 {
     }
     
     /**
-     * Parse vector from string representation "x,y,z".
+     * Parses a vector from a string of comma-separated values.
+     *
+     * @param str The string to parse, in the format "x, y, z".
+     * @return A new {@code Vector3} parsed from the string.
+     * @throws IllegalArgumentException if the string is not in the correct format.
      */
     public static Vector3 parse(String str) {
         if (str == null || str.trim().isEmpty()) {
@@ -357,7 +472,9 @@ public class Vector3 {
     }
     
     /**
-     * Short string representation for debugging.
+     * Returns a compact string representation of the vector, formatted to two decimal places.
+     *
+     * @return A short string representation for debugging.
      */
     public String toShortString() {
         return String.format("(%.2f, %.2f, %.2f)", x, y, z);

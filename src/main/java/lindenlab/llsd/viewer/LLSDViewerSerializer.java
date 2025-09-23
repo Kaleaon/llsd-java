@@ -15,21 +15,17 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Abstract base class for LLSD serialization, converted from C++ LLSDSerialize.
- * 
- * <p>This class provides the framework for serializing and deserializing LLSD data
- * in various formats, with advanced features from the Second Life viewer implementation
- * including size limits, depth limits, and line-based parsing.</p>
- * 
- * <p>Key enhancements over basic LLSD serialization:</p>
- * <ul>
- * <li>Configurable byte and depth limits for security</li>
- * <li>Line-based parsing for better XML handling</li>
- * <li>Reset functionality for parser reuse</li>
- * <li>Advanced error handling and recovery</li>
- * </ul>
- * 
- * @since 1.0
+ * An abstract base class for LLSD parsers, based on the serialization framework
+ * from the Second Life viewer's C++ codebase (LLSDSerialize).
+ * <p>
+ * This class introduces advanced features not found in the basic parsers, such
+ * as configurable limits for parsing depth and total bytes consumed. These features
+ * are crucial for security and stability when parsing untrusted data.
+ * <p>
+ * Subclasses must implement the {@link #doParse(InputStream, int)} method to provide
+ * the parsing logic for a specific LLSD format (e.g., XML, Binary).
+ *
+ * @see <a href="https://github.com/secondlife/viewer/blob/main/indra/llcommon/llsdserialize.h">llsdserialize.h</a>
  * @see LLSD
  */
 public abstract class LLSDViewerSerializer {
@@ -54,15 +50,21 @@ public abstract class LLSDViewerSerializer {
     protected boolean parseLines = false;
     
     /**
-     * Parse LLSD from an InputStream with limits.
-     * Equivalent to C++ LLSDParser::parse()
-     * 
-     * @param input the input stream
-     * @param maxBytes maximum bytes to read (SIZE_UNLIMITED for no limit)
-     * @param maxDepth maximum nesting depth (-1 for unlimited)
-     * @return parsed LLSD object
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if parsing fails
+     * Parses LLSD data from an {@link InputStream} with specified byte and depth limits.
+     * <p>
+     * This is the main entry point for parsing with this framework. It sets up the
+     * parsing limits and then calls the abstract {@link #doParse} method to perform
+     * the actual parsing.
+     *
+     * @param input    The input stream to read from.
+     * @param maxBytes The maximum number of bytes to consume from the stream. Use
+     *                 {@link #SIZE_UNLIMITED} for no limit.
+     * @param maxDepth The maximum allowed nesting depth of the data structure. Use
+     *                 -1 for the default limit.
+     * @return A parsed {@link LLSD} object.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if a parsing error occurs, or if the configured
+     *                       byte or depth limits are exceeded.
      */
     public LLSD parse(InputStream input, long maxBytes, int maxDepth) throws IOException, LLSDException {
         this.maxBytesLeft = maxBytes;
@@ -83,25 +85,25 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Parse LLSD from an InputStream with default limits.
-     * 
-     * @param input the input stream
-     * @return parsed LLSD object
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if parsing fails
+     * Parses LLSD data from an {@link InputStream} with default (unlimited) limits.
+     *
+     * @param input The input stream to read from.
+     * @return A parsed {@link LLSD} object.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if a parsing error occurs.
      */
     public LLSD parse(InputStream input) throws IOException, LLSDException {
         return parse(input, SIZE_UNLIMITED, -1);
     }
     
     /**
-     * Parse LLSD using line-based reading (better for XML).
-     * Equivalent to C++ LLSDParser::parseLines()
-     * 
-     * @param input the input stream
-     * @return parsed LLSD object
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if parsing fails
+     * Parses LLSD data using line-based reading, which can be more robust for
+     * certain formats like XML.
+     *
+     * @param input The input stream to read from.
+     * @return A parsed {@link LLSD} object.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if a parsing error occurs.
      */
     public LLSD parseLines(InputStream input) throws IOException, LLSDException {
         this.parseLines = true;
@@ -113,8 +115,11 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Reset the parser for reuse.
-     * Equivalent to C++ LLSDParser::reset()
+     * Resets the internal state of the parser, allowing it to be reused for
+     * another parsing operation.
+     * <p>
+     * This method resets byte counters and any format-specific state by calling
+     * the {@link #doReset()} hook.
      */
     public void reset() {
         doReset();
@@ -124,33 +129,33 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Abstract method for actual parsing implementation.
-     * Subclasses must implement this method.
-     * 
-     * @param input the input stream
-     * @param maxDepth maximum nesting depth
-     * @return parsed LLSD content
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if parsing fails
+     * The abstract method that subclasses must implement to perform the actual
+     * parsing for a specific format.
+     *
+     * @param input    The input stream to parse.
+     * @param maxDepth The maximum allowed nesting depth.
+     * @return The parsed LLSD content as a Java object (e.g., Map, List, etc.).
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if a format-specific parsing error occurs.
      */
     protected abstract Object doParse(InputStream input, int maxDepth) throws IOException, LLSDException;
     
     /**
-     * Reset method for subclasses to override.
-     * Default implementation does nothing.
+     * A hook for subclasses to implement format-specific reset logic.
+     * <p>
+     * This method is called by {@link #reset()}. The default implementation is a no-op.
      */
     protected void doReset() {
         // Default: no-op
     }
     
     /**
-     * Helper method to read a single byte with limit checking.
-     * Equivalent to C++ LLSDParser::get()
-     * 
-     * @param input the input stream
-     * @return the byte read, or -1 if EOF
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if byte limit exceeded
+     * Reads a single byte from the stream while enforcing the byte limit.
+     *
+     * @param input The input stream to read from.
+     * @return The byte read as an integer (0-255), or -1 on EOF.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the byte limit is exceeded.
      */
     protected int getByte(InputStream input) throws IOException, LLSDException {
         if (checkLimits && maxBytesLeft <= 0) {
@@ -165,16 +170,15 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Helper method to read bytes into a buffer with limit checking.
-     * Equivalent to C++ LLSDParser::read()
-     * 
-     * @param input the input stream
-     * @param buffer the buffer to read into
-     * @param offset offset in buffer
-     * @param length number of bytes to read
-     * @return number of bytes actually read
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if byte limit exceeded
+     * Reads a block of bytes from the stream while enforcing the byte limit.
+     *
+     * @param input  The input stream to read from.
+     * @param buffer The buffer to store the read data.
+     * @param offset The start offset in the buffer.
+     * @param length The maximum number of bytes to read.
+     * @return The total number of bytes read into the buffer.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the byte limit is exceeded.
      */
     protected int readBytes(InputStream input, byte[] buffer, int offset, int length) throws IOException, LLSDException {
         if (checkLimits && maxBytesLeft <= 0) {
@@ -193,11 +197,11 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Account for bytes read outside of helper methods.
-     * Equivalent to C++ LLSDParser::account()
-     * 
-     * @param bytes number of bytes consumed
-     * @throws LLSDException if byte limit exceeded
+     * Manually accounts for a number of bytes consumed, decrementing the
+     * internal byte limit counter.
+     *
+     * @param bytes The number of bytes that have been consumed.
+     * @throws LLSDException if this consumption exceeds the byte limit.
      */
     protected void accountBytes(long bytes) throws LLSDException {
         if (checkLimits) {
@@ -209,11 +213,11 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Check if parsing depth limit is exceeded.
-     * 
-     * @param currentDepth current nesting depth
-     * @param maxDepth maximum allowed depth
-     * @throws LLSDException if depth limit exceeded
+     * Checks if the current parsing depth has exceeded the configured maximum.
+     *
+     * @param currentDepth The current nesting level of the parser.
+     * @param maxDepth     The maximum allowed nesting level.
+     * @throws LLSDException if {@code currentDepth} is greater than {@code maxDepth}.
      */
     protected void checkDepthLimit(int currentDepth, int maxDepth) throws LLSDException {
         if (maxDepth > 0 && currentDepth > maxDepth) {
@@ -222,13 +226,13 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Utility method to read a string with length prefix.
-     * Common pattern in LLSD binary formats.
-     * 
-     * @param input the input stream
-     * @return the string read
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if parsing fails
+     * A utility method for reading a string that is prefixed with its 32-bit,
+     * big-endian length. This is a common pattern in binary serialization.
+     *
+     * @param input The input stream to read from.
+     * @return The string that was read.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the stream ends prematurely or the length is invalid.
      */
     protected String readLengthPrefixedString(InputStream input) throws IOException, LLSDException {
         // Read 4-byte length prefix (big-endian)
@@ -259,12 +263,12 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Utility method to skip whitespace characters.
-     * 
-     * @param input the input stream
-     * @return first non-whitespace character, or -1 if EOF
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if byte limit exceeded
+     * A utility method to consume and discard whitespace characters from the stream.
+     *
+     * @param input The input stream.
+     * @return The first non-whitespace character encountered, or -1 on EOF.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the byte limit is exceeded.
      */
     protected int skipWhitespace(InputStream input) throws IOException, LLSDException {
         int ch;
@@ -275,13 +279,15 @@ public abstract class LLSDViewerSerializer {
     }
     
     /**
-     * Utility method to read until a specific character or EOF.
-     * 
-     * @param input the input stream
-     * @param delimiter the delimiter character
-     * @return string read (not including delimiter)
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if byte limit exceeded
+     * A utility method to read characters from the stream until a specific
+     * delimiter character is found.
+     *
+     * @param input     The input stream.
+     * @param delimiter The character to stop reading at (this character is consumed
+     *                  but not included in the returned string).
+     * @return The string of characters read before the delimiter.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the byte limit is exceeded.
      */
     protected String readUntil(InputStream input, char delimiter) throws IOException, LLSDException {
         StringBuilder sb = new StringBuilder();
@@ -294,33 +300,44 @@ public abstract class LLSDViewerSerializer {
 }
 
 /**
- * Enhanced LLSD serialization utilities, converted from C++ LLSDSerialize class.
- * 
- * <p>This class provides static utility methods for common serialization operations
- * with advanced features from the viewer implementation.</p>
+ * An abstract utility class providing static methods for LLSD serialization and
+ * deserialization, based on the C++ LLSDSerialize class from the Second Life viewer.
+ * <p>
+ * This class is designed to provide a high-level interface for handling different
+ * LLSD formats, including auto-detection of the format from an input stream.
+ * <p>
+ * <b>Note:</b> The methods in this class are currently placeholders and are not
+ * implemented. They are intended to define the future API for a unified
+ * serialization framework.
  */
 abstract class LLSDViewerSerializationUtils {
     
     /**
-     * Supported LLSD serialization formats from viewer.
+     * An enumeration of the LLSD serialization formats supported by the viewer.
      */
     public enum SerializationFormat {
+        /** Binary LLSD format. */
         LLSD_BINARY,
-        LLSD_XML, 
+        /** XML LLSD format. */
+        LLSD_XML,
+        /** Notation LLSD format. */
         LLSD_NOTATION,
-        LLSD_JSON  // Extended format
+        /** JSON LLSD format. */
+        LLSD_JSON
     }
     
     /**
-     * Serialize LLSD to output stream in specified format.
-     * 
-     * @param llsd the LLSD object to serialize
-     * @param output the output stream
-     * @param format the serialization format
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if serialization fails
+     * Serializes an LLSD object to an output stream using the specified format.
+     * <p>
+     * <b>Note: This method is not yet implemented.</b>
+     *
+     * @param llsd   The {@link LLSD} object to serialize.
+     * @param output The stream to write the serialized data to.
+     * @param format The desired serialization format.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if serialization fails for any reason.
      */
-    public static void serialize(LLSD llsd, OutputStream output, SerializationFormat format) 
+    public static void serialize(LLSD llsd, OutputStream output, SerializationFormat format)
             throws IOException, LLSDException {
         switch (format) {
             case LLSD_XML:
@@ -341,13 +358,18 @@ abstract class LLSDViewerSerializationUtils {
     }
     
     /**
-     * Auto-detect format and deserialize LLSD from input stream.
-     * 
-     * @param input the input stream
-     * @param maxBytes maximum bytes to read
-     * @return deserialized LLSD object
-     * @throws IOException if I/O error occurs
-     * @throws LLSDException if deserialization fails
+     * Auto-detects the LLSD format from an input stream and deserializes it.
+     * <p>
+     * It peeks at the first few bytes of the stream to determine if the format is
+     * XML, JSON, Notation, or Binary, and then delegates to the appropriate parser.
+     * <p>
+     * <b>Note: This method is not yet implemented.</b>
+     *
+     * @param input    The input stream containing the LLSD data.
+     * @param maxBytes The maximum number of bytes to read for security.
+     * @return A deserialized {@link LLSD} object.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the format cannot be detected or if deserialization fails.
      */
     public static LLSD deserialize(InputStream input, long maxBytes) throws IOException, LLSDException {
         // Use mark/reset to peek at the beginning

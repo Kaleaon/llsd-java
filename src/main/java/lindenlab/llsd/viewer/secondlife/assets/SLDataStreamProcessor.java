@@ -19,22 +19,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.zip.*;
 
 /**
- * Second Life data stream processing and asset management utilities.
- * 
- * <p>This class provides comprehensive data handling for the Second Life
- * ecosystem, including compression, validation, streaming, and caching
- * for various binary asset types.</p>
- * 
- * <p>Supported operations:</p>
+ * A utility class for processing and managing Second Life data streams and assets.
+ * <p>
+ * This class provides a comprehensive suite of static methods for handling
+ * binary asset data within the Second Life ecosystem. Its responsibilities include:
  * <ul>
- * <li>Asset compression and decompression</li>
- * <li>Data integrity validation</li>
- * <li>Streaming chunk management</li>
- * <li>Asset caching and retrieval</li>
- * <li>Binary data processing</li>
+ *   <li>Compressing and decompressing asset data using various algorithms (Gzip, Deflate).</li>
+ *   <li>Calculating checksums for data integrity validation.</li>
+ *   <li>Splitting large assets into smaller, manageable chunks for streaming.</li>
+ *   <li>Reconstructing assets from a list of stream chunks.</li>
+ *   <li>Caching processed asset data to improve performance.</li>
  * </ul>
- * 
- * @since 1.0
+ * As a utility class, it is final and cannot be instantiated.
  */
 public final class SLDataStreamProcessor {
     
@@ -51,7 +47,7 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Compression type enumeration.
+     * An enumeration of the supported compression types for data streams.
      */
     public enum CompressionType {
         NONE(0, "none"),
@@ -81,7 +77,11 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Stream chunk information.
+     * Represents a single chunk of a data stream.
+     * <p>
+     * A large asset is typically split into multiple chunks for transfer. Each
+     * chunk contains a portion of the data, its index in the sequence, and a
+     * checksum for validation.
      */
     public static class StreamChunk {
         private final int chunkIndex;
@@ -108,7 +108,10 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Data stream information container.
+     * A container for metadata about a processed data stream.
+     * <p>
+     * This class holds information such as the asset's ID and type, its original
+     * and compressed sizes, the compression method used, and an overall checksum.
      */
     public static class DataStreamInfo {
         private final UUID assetId;
@@ -177,16 +180,22 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Process data stream for Second Life asset system.
-     * 
-     * @param assetId the asset UUID
-     * @param assetType the asset type
-     * @param data the raw asset data
-     * @param enableCompression whether to apply compression
-     * @return processed data stream information
-     * @throws LLSDException if processing fails
+     * Processes raw asset data to prepare it for streaming.
+     * <p>
+     * This method takes raw asset data, optionally compresses it, calculates
+     * checksums, and generates metadata about the stream. The resulting
+     * {@link DataStreamInfo} can be used to manage the asset transfer. Processed
+     * data is cached to avoid redundant computation.
+     *
+     * @param assetId           The UUID of the asset being processed.
+     * @param assetType         The type code of the asset.
+     * @param data              The raw binary data of the asset.
+     * @param enableCompression If {@code true}, the data will be compressed if it
+     *                          meets the compression criteria.
+     * @return A {@link DataStreamInfo} object containing metadata about the processed stream.
+     * @throws LLSDException if the input parameters are invalid or if processing fails.
      */
-    public static DataStreamInfo processDataStream(UUID assetId, int assetType, byte[] data, 
+    public static DataStreamInfo processDataStream(UUID assetId, int assetType, byte[] data,
                                                   boolean enableCompression) throws LLSDException {
         if (assetId == null || data == null || data.length == 0) {
             throw new LLSDException("Invalid data stream parameters");
@@ -244,14 +253,17 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Split data into stream chunks.
-     * 
-     * @param data the data to split
-     * @param compression the compression type
-     * @return list of stream chunks
-     * @throws IOException if chunking fails
+     * Splits a byte array into a list of {@link StreamChunk} objects.
+     * <p>
+     * Each chunk is created with a fixed maximum size. If compression is enabled,
+     * each chunk is compressed individually.
+     *
+     * @param data        The data to be split into chunks.
+     * @param compression The compression type to apply to each chunk.
+     * @return A list of {@link StreamChunk} objects.
+     * @throws IOException if an error occurs during compression.
      */
-    public static List<StreamChunk> createStreamChunks(byte[] data, CompressionType compression) 
+    public static List<StreamChunk> createStreamChunks(byte[] data, CompressionType compression)
             throws IOException {
         List<StreamChunk> chunks = new ArrayList<>();
         
@@ -277,14 +289,17 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Reconstruct data from stream chunks.
-     * 
-     * @param chunks the stream chunks
-     * @param compression the compression type
-     * @return reconstructed data
-     * @throws IOException if reconstruction fails
+     * Reconstructs the original data from a list of {@link StreamChunk} objects.
+     * <p>
+     * The chunks are first sorted by their index, then validated, decompressed
+     * if necessary, and concatenated to form the original data.
+     *
+     * @param chunks      The list of chunks to reconstruct from.
+     * @param compression The compression type that was used for the chunks.
+     * @return The reconstructed byte array.
+     * @throws IOException if a chunk is invalid or if decompression fails.
      */
-    public static byte[] reconstructFromChunks(List<StreamChunk> chunks, CompressionType compression) 
+    public static byte[] reconstructFromChunks(List<StreamChunk> chunks, CompressionType compression)
             throws IOException {
         // Sort chunks by index
         chunks.sort(Comparator.comparingInt(StreamChunk::getChunkIndex));
@@ -310,7 +325,13 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Compress data using specified algorithm.
+     * Compresses a byte array using the specified compression algorithm.
+     *
+     * @param data        The data to compress.
+     * @param compression The compression algorithm to use (e.g., GZIP, DEFLATE).
+     * @return The compressed data. Returns a clone of the original if the
+     *         compression type is NONE.
+     * @throws IOException if a compression error occurs.
      */
     public static byte[] compressData(byte[] data, CompressionType compression) throws IOException {
         switch (compression) {
@@ -324,7 +345,12 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Decompress data using specified algorithm.
+     * Decompresses a byte array using the specified compression algorithm.
+     *
+     * @param data        The data to decompress.
+     * @param compression The algorithm used for compression.
+     * @return The decompressed data.
+     * @throws IOException if a decompression error occurs.
      */
     public static byte[] decompressData(byte[] data, CompressionType compression) throws IOException {
         switch (compression) {
@@ -396,7 +422,11 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Calculate SHA-256 checksum of data.
+     * Calculates the SHA-256 checksum of a byte array.
+     *
+     * @param data The data to be hashed.
+     * @return A hex string representation of the SHA-256 checksum.
+     * @throws RuntimeException if the SHA-256 algorithm is not available.
      */
     public static String calculateChecksum(byte[] data) {
         try {
@@ -419,7 +449,13 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Validate data integrity using checksum.
+     * Validates the integrity of a byte array by comparing its calculated
+     * checksum against an expected checksum.
+     *
+     * @param data             The data to validate.
+     * @param expectedChecksum The expected SHA-256 checksum as a hex string.
+     * @return {@code true} if the calculated checksum matches the expected one,
+     *         {@code false} otherwise.
      */
     public static boolean validateDataIntegrity(byte[] data, String expectedChecksum) {
         String actualChecksum = calculateChecksum(data);
@@ -448,7 +484,14 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Create data stream LLSD structure.
+     * Creates the final LLSD map structure for a data stream.
+     * <p>
+     * This method packages the stream's metadata and a summary of its chunks
+     * into a single LLSD map, which can then be serialized and transmitted.
+     *
+     * @param info   The {@link DataStreamInfo} containing the stream's metadata.
+     * @param chunks The list of {@link StreamChunk} objects that make up the stream.
+     * @return A {@link Map} representing the complete data stream structure.
      */
     public static Map<String, Object> createDataStreamLLSD(DataStreamInfo info, List<StreamChunk> chunks) {
         Map<String, Object> streamData = new HashMap<>();
@@ -486,14 +529,17 @@ public final class SLDataStreamProcessor {
     }
     
     /**
-     * Clear data cache.
+     * Clears all entries from the internal data cache.
      */
     public static void clearCache() {
         dataCache.clear();
     }
     
     /**
-     * Get cache statistics.
+     * Gets statistics about the current state of the data cache.
+     *
+     * @return A map containing statistics such as the number of cached items
+     *         and the total size of cached data.
      */
     public static Map<String, Object> getCacheStats() {
         Map<String, Object> stats = new HashMap<>();

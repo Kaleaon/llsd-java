@@ -19,31 +19,24 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
- * Parser for LLSD documents in Binary format.
- * 
- * <p>This parser converts binary-formatted LLSD documents into Java objects.
- * The binary format is an efficient binary serialization of LLSD data.</p>
- * 
- * <p>Binary LLSD format uses specific byte markers:
- * <ul>
- * <li>Header: {@code "<?llsd/binary?>"}</li>
- * <li>Boolean: {@code 0x31} (true), {@code 0x30} (false)</li>
- * <li>Integer: {@code 'i'} + 4 bytes (big-endian)</li>
- * <li>Real: {@code 'r'} + 8 bytes (big-endian double)</li>
- * <li>String: {@code 's'} + 4 bytes length + UTF-8 data</li>
- * <li>UUID: {@code 'u'} + 16 bytes</li>
- * <li>Date: {@code 'd'} + 8 bytes (seconds since epoch as double)</li>
- * <li>URI: {@code 'l'} + 4 bytes length + UTF-8 data</li>
- * <li>Binary: {@code 'b'} + 4 bytes length + raw data</li>
- * <li>Array: {@code '['} + elements + {@code ']'}</li>
- * <li>Map: {@code '{'} + key-value pairs + {@code '}'}</li>
- * <li>Map Key: {@code 'k'} + 4 bytes length + UTF-8 data</li>
- * <li>Undefined: {@code '!'}</li>
- * </ul></p>
- * 
- * @since 1.0
+ * A parser for LLSD (Linden Lab Structured Data) in its binary representation.
+ * <p>
+ * This class is responsible for taking an {@link InputStream} containing LLSD
+ * binary data and converting it into a Java object representation, wrapped in an
+ * {@link LLSD} object. The binary format is a compact, efficient, and strongly-typed
+ * serialization format designed for high-performance applications.
+ * <p>
+ * The parser handles all standard LLSD data types, including integers, reals,
+ * strings, UUIDs, dates, URIs, binary data, arrays, and maps. It correctly
+ * interprets the specific byte markers and data layouts defined in the LLSD
+ * binary specification.
+ * <p>
+ * An optional header, {@code "<?llsd/binary?>"}, may be present at the beginning
+ * of the stream. This parser can handle streams with or without this header.
+ *
  * @see LLSD
  * @see LLSDBinarySerializer
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Binary_Serialization">LLSD Binary Specification</a>
  */
 public class LLSDBinaryParser {
     private static final String LLSD_BINARY_HEADER = "<?llsd/binary?>";
@@ -69,19 +62,24 @@ public class LLSDBinaryParser {
     private static final byte KEY_MARKER = (byte) 'k';
 
     /**
-     * Constructs a new LLSD Binary parser.
+     * Initializes a new instance of the {@code LLSDBinaryParser}.
      */
     public LLSDBinaryParser() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Parses an LLSD document from the given binary input stream.
+     * Parses an LLSD document from a binary input stream.
+     * <p>
+     * This is the main entry point for parsing. It reads the stream, optionally
+     * validates the binary header, and then recursively parses the LLSD data
+     * structure.
      *
-     * @param binaryInput the binary input stream to read and parse as LLSD.
-     * @return the parsed LLSD document
-     * @throws IOException if there was a problem reading from the input stream.
-     * @throws LLSDException if the document is valid binary, but invalid LLSD.
+     * @param binaryInput The input stream containing the binary LLSD data.
+     * @return An {@link LLSD} object representing the parsed data.
+     * @throws IOException   if an I/O error occurs while reading from the stream.
+     * @throws LLSDException if the data is not valid LLSD binary format, for
+     *                       example, due to an unknown marker or unexpected end of stream.
      */
     public LLSD parse(final InputStream binaryInput) throws IOException, LLSDException {
         BinaryReader reader = new BinaryReader(binaryInput);
@@ -101,16 +99,31 @@ public class LLSDBinaryParser {
         return new LLSD(parsedBinary);
     }
 
+    /**
+     * An internal helper class for reading binary data from an input stream.
+     * It provides methods to read specific data types (like integers and doubles)
+     * and handles peeking at the next byte without consuming it.
+     */
     private static class BinaryReader {
         private final InputStream input;
         private byte[] buffer = new byte[1];
         private boolean hasPeeked = false;
         private byte peekedByte;
 
+        /**
+         * Constructs a BinaryReader that reads from the given InputStream.
+         * @param input The stream to read from.
+         */
         public BinaryReader(InputStream input) {
             this.input = input;
         }
 
+        /**
+         * Peeks at the next byte in the stream without consuming it.
+         * @return The next byte.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the end of the stream is reached.
+         */
         public byte peek() throws IOException, LLSDException {
             if (!hasPeeked) {
                 int result = input.read(buffer);
@@ -123,6 +136,12 @@ public class LLSDBinaryParser {
             return peekedByte;
         }
 
+        /**
+         * Reads and consumes the next byte from the stream.
+         * @return The byte that was read.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the end of the stream is reached.
+         */
         public byte readByte() throws IOException, LLSDException {
             if (hasPeeked) {
                 hasPeeked = false;
@@ -136,6 +155,13 @@ public class LLSDBinaryParser {
             return buffer[0];
         }
 
+        /**
+         * Reads a specified number of bytes from the stream.
+         * @param count The number of bytes to read.
+         * @return A byte array containing the read bytes.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the end of the stream is reached before all bytes are read.
+         */
         public byte[] readBytes(int count) throws IOException, LLSDException {
             byte[] bytes = new byte[count];
             int totalRead = 0;
@@ -158,16 +184,34 @@ public class LLSDBinaryParser {
             return bytes;
         }
 
+        /**
+         * Reads a 32-bit integer in big-endian order.
+         * @return The integer value.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the stream ends prematurely.
+         */
         public int readInt32() throws IOException, LLSDException {
             byte[] bytes = readBytes(4);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getInt();
         }
 
+        /**
+         * Reads a 64-bit double-precision floating-point number in big-endian order.
+         * @return The double value.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the stream ends prematurely.
+         */
         public double readDouble() throws IOException, LLSDException {
             byte[] bytes = readBytes(8);
             return ByteBuffer.wrap(bytes).order(ByteOrder.BIG_ENDIAN).getDouble();
         }
 
+        /**
+         * Reads a string, which is prefixed by its 32-bit length.
+         * @return The string value.
+         * @throws IOException if an I/O error occurs.
+         * @throws LLSDException if the stream ends prematurely.
+         */
         public String readString() throws IOException, LLSDException {
             int length = readInt32();
             if (length == 0) {
@@ -177,11 +221,21 @@ public class LLSDBinaryParser {
             return new String(bytes, StandardCharsets.UTF_8);
         }
 
+        /**
+         * Checks if there is more data available to be read from the stream.
+         * @return true if more data is available, false otherwise.
+         * @throws IOException if an I/O error occurs.
+         */
         public boolean isAvailable() throws IOException {
             return input.available() > 0 || hasPeeked;
         }
     }
 
+    /**
+     * Skips any whitespace characters from the input stream.
+     * @param reader The BinaryReader to read from.
+     * @throws IOException if an I/O error occurs.
+     */
     private void skipWhitespace(BinaryReader reader) throws IOException {
         try {
             while (reader.isAvailable()) {
@@ -197,6 +251,14 @@ public class LLSDBinaryParser {
         }
     }
 
+    /**
+     * Parses a single LLSD value from the stream based on its type marker.
+     * This is the core of the recursive descent parser.
+     * @param reader The BinaryReader to use for reading data.
+     * @return The parsed Java object.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if an unknown marker or invalid data is encountered.
+     */
     private Object parseBinaryValue(BinaryReader reader) throws IOException, LLSDException {
         byte marker = reader.readByte();
 
@@ -243,6 +305,13 @@ public class LLSDBinaryParser {
         }
     }
 
+    /**
+     * Parses a 16-byte UUID from the stream.
+     * @param reader The BinaryReader to read from.
+     * @return A {@link UUID} object.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the stream ends prematurely.
+     */
     private UUID parseUUID(BinaryReader reader) throws IOException, LLSDException {
         byte[] bytes = reader.readBytes(16);
         
@@ -253,12 +322,26 @@ public class LLSDBinaryParser {
         return new UUID(mostSigBits, leastSigBits);
     }
 
+    /**
+     * Parses an 8-byte date value (double-precision seconds since the Unix epoch).
+     * @param reader The BinaryReader to read from.
+     * @return A {@link Date} object.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the stream ends prematurely.
+     */
     private Date parseDate(BinaryReader reader) throws IOException, LLSDException {
         double secondsSinceEpoch = reader.readDouble();
         long millisSinceEpoch = (long) (secondsSinceEpoch * 1000.0);
         return new Date(millisSinceEpoch);
     }
 
+    /**
+     * Parses a URI from the stream.
+     * @param reader The BinaryReader to read from.
+     * @return A {@link URI} object.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the URI syntax is invalid or the stream ends prematurely.
+     */
     private URI parseURI(BinaryReader reader) throws IOException, LLSDException {
         String uriString = reader.readString();
         try {
@@ -268,6 +351,13 @@ public class LLSDBinaryParser {
         }
     }
 
+    /**
+     * Parses a block of binary data from the stream.
+     * @param reader The BinaryReader to read from.
+     * @return A byte array containing the binary data.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the stream ends prematurely.
+     */
     private byte[] parseBinary(BinaryReader reader) throws IOException, LLSDException {
         int length = reader.readInt32();
         if (length == 0) {
@@ -276,6 +366,14 @@ public class LLSDBinaryParser {
         return reader.readBytes(length);
     }
 
+    /**
+     * Parses an array from the stream. It reads elements recursively until it
+     * encounters an array-end marker.
+     * @param reader The BinaryReader to read from.
+     * @return A {@link List} of parsed objects.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the array is malformed or the stream ends prematurely.
+     */
     private List<Object> parseArray(BinaryReader reader) throws IOException, LLSDException {
         List<Object> array = new ArrayList<>();
 
@@ -293,6 +391,15 @@ public class LLSDBinaryParser {
         return array;
     }
 
+    /**
+     * Parses a map from the stream. It reads key-value pairs recursively until
+     * it encounters a map-end marker.
+     * @param reader The BinaryReader to read from.
+     * @return A {@link Map} of parsed key-value pairs.
+     * @throws IOException if an I/O error occurs.
+     * @throws LLSDException if the map is malformed (e.g., missing key marker)
+     *                       or the stream ends prematurely.
+     */
     private Map<String, Object> parseMap(BinaryReader reader) throws IOException, LLSDException {
         Map<String, Object> map = new HashMap<>();
 

@@ -17,19 +17,18 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Second Life sound processing and streaming utilities.
- * 
- * <p>This class provides comprehensive audio handling for the Second Life
- * ecosystem, including format conversion, caching, streaming, and validation.</p>
- * 
- * <p>Supported audio formats:</p>
+ * A utility class for processing and managing Second Life sound assets.
+ * <p>
+ * This class provides a suite of static methods for handling audio data within
+ * the Second Life ecosystem. Its responsibilities include:
  * <ul>
- * <li>WAV - Windows Audio format (primary SL format)</li>
- * <li>OGG - Ogg Vorbis compressed audio</li>
- * <li>MP3 - MPEG Audio Layer III (limited support)</li>
+ *   <li>Detecting audio formats (WAV, OGG, MP3).</li>
+ *   <li>Parsing audio headers to extract metadata like sample rate, channels, and duration.</li>
+ *   <li>Validating audio data against Second Life's constraints (e.g., max duration, max size).</li>
+ *   <li>Caching processed audio information to improve performance.</li>
+ *   <li>Creating standard LLSD structures for sound streams.</li>
  * </ul>
- * 
- * @since 1.0
+ * As a utility class, it is final and cannot be instantiated.
  */
 public final class SLSoundProcessor {
     
@@ -46,7 +45,7 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Audio format enumeration.
+     * An enumeration of the audio formats supported by the sound processor.
      */
     public enum AudioFormat {
         WAV("wav", "audio/wav"),
@@ -78,7 +77,11 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Audio metadata container.
+     * A container for metadata extracted from an audio asset.
+     * <p>
+     * This class holds information such as the sound's format, sample rate,
+     * duration, and size. It also provides a method to check if the audio
+     * conforms to Second Life's technical constraints.
      */
     public static class AudioInfo {
         private final UUID soundId;
@@ -143,15 +146,21 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Process sound data from Second Life format.
-     * 
-     * @param soundId the sound UUID
-     * @param data the raw audio data
-     * @param format the expected audio format
-     * @return processed audio information
-     * @throws LLSDException if processing fails
+     * Processes raw audio data to extract metadata and validate it.
+     * <p>
+     * This method serves as the main entry point for sound processing. It first
+     * checks a cache for previously processed data. If not found, it delegates
+     * to a format-specific processing method (e.g., for WAV or OGG) to parse
+     * the audio header and extract information. The results are then cached.
+     *
+     * @param soundId The UUID of the sound asset.
+     * @param data    The raw binary data of the sound.
+     * @param format  The expected format of the audio data. If {@link AudioFormat#UNKNOWN},
+     *                the format will be auto-detected.
+     * @return An {@link AudioInfo} object containing the extracted metadata.
+     * @throws LLSDException if the audio data is invalid or processing fails.
      */
-    public static AudioInfo processSound(UUID soundId, byte[] data, AudioFormat format) 
+    public static AudioInfo processSound(UUID soundId, byte[] data, AudioFormat format)
             throws LLSDException {
         if (soundId == null || data == null || data.length == 0) {
             throw new LLSDException("Invalid sound data");
@@ -325,7 +334,11 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Detect audio format from data.
+     * Detects the audio format of a byte array by inspecting its header (magic numbers).
+     *
+     * @param data The audio data to be analyzed.
+     * @return The detected {@link AudioFormat} (WAV, OGG, MP3), or
+     *         {@link AudioFormat#UNKNOWN} if the format cannot be determined.
      */
     public static AudioFormat detectAudioFormat(byte[] data) {
         if (data == null || data.length < 4) {
@@ -351,10 +364,18 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Create sound stream LLSD data.
+     * Creates a standard LLSD map structure for a sound stream.
+     * <p>
+     * This method packages the sound's metadata and its raw data into a single
+     * LLSD map, which can then be serialized for transmission or storage.
+     *
+     * @param soundId The UUID of the sound asset.
+     * @param info    The {@link AudioInfo} object containing the sound's metadata.
+     * @param data    The raw binary data of the sound.
+     * @return A {@link Map} representing the sound stream.
      */
-    public static Map<String, Object> createSoundStreamData(UUID soundId, 
-                                                            AudioInfo info, 
+    public static Map<String, Object> createSoundStreamData(UUID soundId,
+                                                            AudioInfo info,
                                                             byte[] data) {
         Map<String, Object> streamData = new HashMap<>();
         streamData.put("AssetID", soundId);
@@ -373,7 +394,12 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Validate audio for Second Life constraints.
+     * Validates an {@link AudioInfo} object against Second Life's specific
+     * constraints, such as maximum duration and file size.
+     *
+     * @param info The {@link AudioInfo} object to validate.
+     * @return {@code true} if the audio meets all Second Life constraints,
+     *         {@code false} otherwise.
      */
     public static boolean isValidSLAudio(AudioInfo info) {
         return info != null && info.isValid() &&
@@ -382,7 +408,15 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Convert audio to WAV format (simplified).
+     * Converts audio data from a given format to WAV format.
+     * <p>
+     * <b>Note:</b> This is a placeholder for a full implementation. A real
+     * implementation would require a dedicated audio processing library.
+     *
+     * @param sourceData   The source audio data to convert.
+     * @param sourceFormat The format of the source data.
+     * @return The converted WAV data.
+     * @throws IOException if the conversion is not supported or fails.
      */
     public static byte[] convertToWAV(byte[] sourceData, AudioFormat sourceFormat) throws IOException {
         if (sourceFormat == AudioFormat.WAV) {
@@ -442,14 +476,17 @@ public final class SLSoundProcessor {
     }
     
     /**
-     * Clear sound cache.
+     * Clears all entries from the internal sound cache.
      */
     public static void clearCache() {
         soundCache.clear();
     }
     
     /**
-     * Get cache statistics.
+     * Gets statistics about the current state of the sound cache.
+     *
+     * @return A map containing statistics such as the number of cached items
+     *         and the total size of cached data.
      */
     public static Map<String, Object> getCacheStats() {
         Map<String, Object> stats = new HashMap<>();

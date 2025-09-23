@@ -16,10 +16,27 @@ import lindenlab.llsd.viewer.secondlife.engine.*;
 import java.util.*;
 
 /**
- * Demonstration program showing Second Life asset processing capabilities.
+ * A demonstration application that showcases the various asset processing
+ * capabilities of the Second Life LLSD extensions.
+ * <p>
+ * This class runs a series of demonstrations for:
+ * <ul>
+ *   <li>Texture processing (detection, metadata extraction).</li>
+ *   <li>Sound processing.</li>
+ *   <li>Generic data stream processing (compression, chunking).</li>
+ *   <li>The visual engine (vector math, scene graph).</li>
+ *   <li>Cache statistics.</li>
+ * </ul>
+ * It is intended to be run as a standalone application to verify and
+ * illustrate the functionality of the asset processing utilities.
  */
 public class SLAssetDemo {
-    
+
+    /**
+     * The main entry point for the demonstration application.
+     *
+     * @param args Command-line arguments (not used).
+     */
     public static void main(String[] args) {
         System.out.println("=== Second Life Asset Processing Demo ===\n");
         
@@ -45,6 +62,11 @@ public class SLAssetDemo {
         }
     }
     
+    /**
+     * Demonstrates the processing of a sample texture asset.
+     * It shows format detection, metadata extraction, and LLSD stream creation.
+     * @throws LLSDException if texture processing fails.
+     */
     private static void demoTextureProcessing() throws LLSDException {
         System.out.println("1. Texture Processing Demo");
         System.out.println("--------------------------");
@@ -74,6 +96,11 @@ public class SLAssetDemo {
         System.out.println();
     }
     
+    /**
+     * Demonstrates the processing of a sample sound asset.
+     * It shows format detection, metadata extraction, and validation.
+     * @throws LLSDException if sound processing fails.
+     */
     private static void demoSoundProcessing() throws LLSDException {
         System.out.println("2. Sound Processing Demo");
         System.out.println("------------------------");
@@ -105,6 +132,11 @@ public class SLAssetDemo {
         System.out.println();
     }
     
+    /**
+     * Demonstrates the processing of a generic data stream, including
+     * compression and checksum validation.
+     * @throws LLSDException if data stream processing fails.
+     */
     private static void demoDataStreamProcessing() throws LLSDException {
         System.out.println("3. Data Stream Processing Demo");
         System.out.println("------------------------------");
@@ -134,6 +166,10 @@ public class SLAssetDemo {
         System.out.println();
     }
     
+    /**
+     * Demonstrates the basic features of the visual engine, including
+     * vector math and scene graph manipulation.
+     */
     private static void demoVisualEngine() {
         System.out.println("4. Visual Engine Demo");
         System.out.println("---------------------");
@@ -175,6 +211,9 @@ public class SLAssetDemo {
         System.out.println();
     }
     
+    /**
+     * Displays statistics for the various asset caches.
+     */
     private static void demoCacheStatistics() {
         System.out.println("5. Cache Statistics");
         System.out.println("-------------------");
@@ -204,7 +243,10 @@ public class SLAssetDemo {
         System.out.println("Demo completed successfully!");
     }
     
-    // Helper methods to create sample data
+    /**
+     * Creates a dummy byte array representing a J2C texture for demonstration.
+     * @return A byte array with a J2C signature.
+     */
     private static byte[] createSampleJ2CTexture() {
         byte[] data = new byte[1024];
         data[0] = (byte)0xFF; // J2C signature
@@ -218,6 +260,10 @@ public class SLAssetDemo {
         return data;
     }
     
+    /**
+     * Creates a dummy byte array representing a WAV audio file for demonstration.
+     * @return A byte array with a valid WAV header.
+     */
     private static byte[] createSampleWAVAudio() {
         byte[] data = new byte[1000];
         

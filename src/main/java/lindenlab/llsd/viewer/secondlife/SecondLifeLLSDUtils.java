@@ -18,23 +18,15 @@ import java.util.stream.Collectors;
 import java.util.UUID;
 
 /**
- * Second Life specific LLSD utilities and extensions.
- * 
- * <p>This class provides LLSD functionality that is specific to the Second Life
- * viewer implementation, including specialized data structures, protocols,
- * and formatting used within the SL ecosystem.</p>
- * 
- * <p>Key Second Life specific features:</p>
- * <ul>
- * <li>SL-specific message formats and protocols</li>
- * <li>Avatar and object data structures</li>
- * <li>Land and parcel information handling</li>
- * <li>Asset and inventory data management</li>
- * <li>Chat and communication structures</li>
- * <li>Physics and simulation data formats</li>
- * </ul>
- * 
- * @since 1.0
+ * A utility class providing LLSD (Linden Lab Structured Data) functionality
+ * specific to the Second Life platform.
+ * <p>
+ * This class encapsulates methods for creating and validating LLSD structures
+ * that are commonly used in Second Life protocols, such as agent updates, chat
+ * messages, and asset data. It provides a higher-level API for constructing
+ * these complex data types.
+ * <p>
+ * As a utility class, it is final and cannot be instantiated.
  */
 public final class SecondLifeLLSDUtils {
     
@@ -43,7 +35,7 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Second Life specific message types.
+     * An enumeration of common message types used in Second Life protocols.
      */
     public enum SLMessageType {
         AGENT_UPDATE,
@@ -59,17 +51,18 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life agent data.
-     * 
-     * @param agentId the agent UUID
-     * @param position the agent position (x, y, z)
-     * @param rotation the agent rotation (x, y, z, w quaternion)
-     * @param velocity the agent velocity (x, y, z)
-     * @return LLSD map containing agent data
+     * Creates an LLSD map representing a Second Life agent's data.
+     *
+     * @param agentId  The UUID of the agent.
+     * @param position A 3-element array for the agent's position (x, y, z).
+     * @param rotation A 4-element array for the agent's rotation as a quaternion (x, y, z, w).
+     * @param velocity A 3-element array for the agent's velocity (x, y, z).
+     * @return A {@link Map} containing the structured agent data.
+     * @throws IllegalArgumentException if any of the array arguments have incorrect dimensions.
      */
-    public static Map<String, Object> createAgentData(UUID agentId, 
-                                                      double[] position, 
-                                                      double[] rotation, 
+    public static Map<String, Object> createAgentData(UUID agentId,
+                                                      double[] position,
+                                                      double[] rotation,
                                                       double[] velocity) {
         if (position.length != 3 || rotation.length != 4 || velocity.length != 3) {
             throw new IllegalArgumentException("Invalid vector dimensions");
@@ -86,15 +79,16 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life object data.
-     * 
-     * @param objectId the object UUID
-     * @param parentId the parent object UUID (null if root)
-     * @param position the object position
-     * @param rotation the object rotation
-     * @param scale the object scale
-     * @param material the object material properties
-     * @return LLSD map containing object data
+     * Creates an LLSD map representing a Second Life in-world object.
+     *
+     * @param objectId The UUID of the object.
+     * @param parentId The UUID of the object's parent (can be null for root objects).
+     * @param position A 3-element array for the object's position.
+     * @param rotation A 4-element array for the object's rotation (quaternion).
+     * @param scale    A 3-element array for the object's scale.
+     * @param material A map containing the object's material properties.
+     * @return A {@link Map} containing the structured object data.
+     * @throws IllegalArgumentException if vector arrays have incorrect dimensions.
      */
     public static Map<String, Object> createObjectData(UUID objectId,
                                                        UUID parentId,
@@ -121,16 +115,16 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life parcel data.
-     * 
-     * @param parcelId the parcel UUID
-     * @param name the parcel name
-     * @param description the parcel description
-     * @param area the parcel area in square meters
-     * @param ownerId the owner UUID
-     * @param groupId the group UUID (null if none)
-     * @param flags the parcel flags
-     * @return LLSD map containing parcel data
+     * Creates an LLSD map representing data for a parcel of land in Second Life.
+     *
+     * @param parcelId    The UUID of the parcel.
+     * @param name        The name of the parcel.
+     * @param description A description of the parcel.
+     * @param area        The area of the parcel in square meters.
+     * @param ownerId     The UUID of the parcel's owner.
+     * @param groupId     The UUID of the group the parcel is set to (can be null).
+     * @param flags       An integer representing the parcel's flags.
+     * @return A {@link Map} containing the structured parcel data.
      */
     public static Map<String, Object> createParcelData(UUID parcelId,
                                                        String name,
@@ -152,16 +146,16 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life inventory item.
-     * 
-     * @param itemId the item UUID
-     * @param parentId the parent folder UUID
-     * @param name the item name
-     * @param description the item description
-     * @param type the item type
-     * @param assetId the associated asset UUID
-     * @param permissions the item permissions
-     * @return LLSD map containing inventory item data
+     * Creates an LLSD map representing an item in a Second Life inventory.
+     *
+     * @param itemId      The UUID of the inventory item.
+     * @param parentId    The UUID of the parent folder.
+     * @param name        The name of the item.
+     * @param description A description of the item.
+     * @param type        An integer representing the inventory item type.
+     * @param assetId     The UUID of the underlying asset for this item.
+     * @param permissions A map defining the item's permissions.
+     * @return A {@link Map} containing the structured inventory item data.
      */
     public static Map<String, Object> createInventoryItem(UUID itemId,
                                                           UUID parentId,
@@ -188,15 +182,15 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life chat message.
-     * 
-     * @param fromId the sender UUID
-     * @param fromName the sender name
-     * @param message the message text
-     * @param channel the chat channel
-     * @param type the chat type (0=say, 1=shout, 2=whisper)
-     * @param position the sender position
-     * @return LLSD map containing chat message data
+     * Creates an LLSD map representing an in-world chat message.
+     *
+     * @param fromId   The UUID of the message sender.
+     * @param fromName The name of the sender.
+     * @param message  The text of the message.
+     * @param channel  The chat channel the message was sent on.
+     * @param type     The type of chat (e.g., 0 for say, 1 for shout).
+     * @param position A 3-element array of the sender's position.
+     * @return A {@link Map} containing the structured chat message.
      */
     public static Map<String, Object> createChatMessage(UUID fromId,
                                                         String fromName,
@@ -220,15 +214,15 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Second Life asset data.
-     * 
-     * @param assetId the asset UUID
-     * @param type the asset type
-     * @param name the asset name
-     * @param description the asset description
-     * @param data the asset binary data
-     * @param temporary whether the asset is temporary
-     * @return LLSD map containing asset data
+     * Creates an LLSD map representing a Second Life asset.
+     *
+     * @param assetId     The UUID of the asset.
+     * @param type        An integer representing the asset type.
+     * @param name        The name of the asset.
+     * @param description A description of the asset.
+     * @param data        The raw binary data of the asset.
+     * @param temporary   {@code true} if the asset is temporary.
+     * @return A {@link Map} containing the structured asset data.
      */
     public static Map<String, Object> createAssetData(UUID assetId,
                                                       int type,
@@ -249,14 +243,17 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Parse Second Life specific message format.
-     * 
-     * @param llsdData the LLSD data to parse
-     * @param expectedType the expected message type
-     * @return parsed message data
-     * @throws LLSDException if parsing fails
+     * Parses a generic Second Life message structure from an LLSD object.
+     * <p>
+     * This method validates that the input is a map and contains a "MessageType"
+     * field that matches the expected type.
+     *
+     * @param llsdData     The LLSD object to parse.
+     * @param expectedType The expected {@link SLMessageType}.
+     * @return The parsed message as a {@link Map}.
+     * @throws LLSDException if the LLSD data is not a valid SL message of the expected type.
      */
-    public static Map<String, Object> parseSLMessage(Object llsdData, SLMessageType expectedType) 
+    public static Map<String, Object> parseSLMessage(Object llsdData, SLMessageType expectedType)
             throws LLSDException {
         if (!(llsdData instanceof Map)) {
             throw new LLSDException("SL message must be a map");
@@ -287,10 +284,11 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Validate Second Life UUID format.
-     * 
-     * @param uuid the UUID to validate
-     * @return true if valid SL UUID
+     * Validates a UUID to ensure it is a valid, non-null Second Life UUID.
+     *
+     * @param uuid The UUID to validate.
+     * @return {@code true} if the UUID is not null and not the null UUID
+     *         (0000...-0000), {@code false} otherwise.
      */
     public static boolean isValidSLUUID(UUID uuid) {
         if (uuid == null) {
@@ -302,12 +300,12 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create a Second Life compatible LLSD response structure.
-     * 
-     * @param success whether the operation succeeded
-     * @param message the response message
-     * @param data optional response data
-     * @return LLSD response map
+     * Creates a standard LLSD response map, commonly used in Second Life protocols.
+     *
+     * @param success {@code true} if the operation was successful, {@code false} otherwise.
+     * @param message A descriptive message about the outcome of the operation.
+     * @param data    An optional LLSD object containing additional data for the response.
+     * @return A {@link Map} containing the structured response.
      */
     public static Map<String, Object> createSLResponse(boolean success, String message, Object data) {
         Map<String, Object> response = new HashMap<>();
@@ -323,11 +321,11 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Second Life specific LLSD validation rules.
-     * 
-     * @param llsdData the LLSD data to validate
-     * @param rules the validation rules to apply
-     * @return validation result with any errors
+     * Validates an LLSD data structure against a set of predefined rules.
+     *
+     * @param llsdData The LLSD object to be validated.
+     * @param rules    The {@link SLValidationRules} to apply.
+     * @return A {@link ValidationResult} object containing any errors found.
      */
     public static ValidationResult validateSLStructure(Object llsdData, SLValidationRules rules) {
         ValidationResult result = new ValidationResult();
@@ -372,7 +370,11 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Validation rules for Second Life LLSD structures.
+     * A builder class for defining a set of validation rules for Second Life
+     * LLSD structures.
+     * <p>
+     * It provides a fluent API for specifying whether the root should be a map
+     * or array, and for defining required fields and their expected types.
      */
     public static class SLValidationRules {
         public boolean requiresMap = false;
@@ -403,53 +405,57 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Create texture stream data structure.
-     * 
-     * @param textureId the texture UUID
-     * @param textureData the texture binary data
-     * @param format the texture format
-     * @return LLSD map containing texture stream data
-     * @throws LLSDException if texture processing fails
+     * Creates an LLSD map representing a texture stream, including processed
+     * texture information.
+     *
+     * @param textureId   The UUID of the texture.
+     * @param textureData The raw binary data of the texture.
+     * @param format      The format of the texture (e.g., J2C, TGA).
+     * @return A {@link Map} containing the structured texture stream data.
+     * @throws LLSDException if processing the texture data fails.
      */
-    public static Map<String, Object> createTextureStream(UUID textureId, 
-                                                          byte[] textureData, 
-                                                          SLTextureProcessor.TextureFormat format) 
+    public static Map<String, Object> createTextureStream(UUID textureId,
+                                                          byte[] textureData,
+                                                          SLTextureProcessor.TextureFormat format)
             throws LLSDException {
         SLTextureProcessor.TextureInfo info = SLTextureProcessor.processTexture(textureId, textureData, format);
         return SLTextureProcessor.createTextureStreamData(textureId, info, textureData);
     }
     
     /**
-     * Create sound stream data structure.
-     * 
-     * @param soundId the sound UUID
-     * @param soundData the sound binary data
-     * @param format the audio format
-     * @return LLSD map containing sound stream data
-     * @throws LLSDException if sound processing fails
+     * Creates an LLSD map representing a sound stream, including processed audio info.
+     *
+     * @param soundId   The UUID of the sound asset.
+     * @param soundData The raw binary data of the sound.
+     * @param format    The format of the audio (e.g., WAV, OGG).
+     * @return A {@link Map} containing the structured sound stream data.
+     * @throws LLSDException if processing the sound data fails.
      */
-    public static Map<String, Object> createSoundStream(UUID soundId, 
-                                                        byte[] soundData, 
-                                                        SLSoundProcessor.AudioFormat format) 
+    public static Map<String, Object> createSoundStream(UUID soundId,
+                                                        byte[] soundData,
+                                                        SLSoundProcessor.AudioFormat format)
             throws LLSDException {
         SLSoundProcessor.AudioInfo info = SLSoundProcessor.processSound(soundId, soundData, format);
         return SLSoundProcessor.createSoundStreamData(soundId, info, soundData);
     }
     
     /**
-     * Create general data stream structure.
-     * 
-     * @param assetId the asset UUID
-     * @param assetType the asset type
-     * @param assetData the asset binary data
-     * @param enableCompression whether to enable compression
-     * @return LLSD map containing data stream information
-     * @throws LLSDException if data processing fails
+     * Creates an LLSD map representing a generic data stream for asset transfer.
+     * <p>
+     * This method processes the data, optionally compresses it, splits it into
+     * chunks, and packages it into a standard LLSD stream structure.
+     *
+     * @param assetId           The UUID of the asset.
+     * @param assetType         The type of the asset.
+     * @param assetData         The raw binary data of the asset.
+     * @param enableCompression {@code true} to compress the data before chunking.
+     * @return A {@link Map} containing the structured data stream.
+     * @throws LLSDException if processing the data fails.
      */
-    public static Map<String, Object> createDataStream(UUID assetId, 
-                                                       int assetType, 
-                                                       byte[] assetData, 
-                                                       boolean enableCompression) 
+    public static Map<String, Object> createDataStream(UUID assetId,
+                                                       int assetType,
+                                                       byte[] assetData,
+                                                       boolean enableCompression)
             throws LLSDException {
         try {
             SLDataStreamProcessor.DataStreamInfo info = SLDataStreamProcessor.processDataStream(
@@ -465,13 +471,17 @@ public final class SecondLifeLLSDUtils {
     }
     
     /**
-     * Process incoming asset stream from Second Life.
-     * 
-     * @param streamData the LLSD stream data
-     * @return processed asset information
-     * @throws LLSDException if stream processing fails
+     * Processes an incoming LLSD asset stream from Second Life.
+     * <p>
+     * This method identifies the asset type from the stream data and delegates
+     * to the appropriate processor (e.g., for textures or sounds) to validate
+     * and extract information from the data.
+     *
+     * @param streamData The LLSD map representing the incoming stream.
+     * @return A map containing the processed asset information and validation status.
+     * @throws LLSDException if the stream data is malformed or processing fails.
      */
-    public static Map<String, Object> processIncomingStream(Map<String, Object> streamData) 
+    public static Map<String, Object> processIncomingStream(Map<String, Object> streamData)
             throws LLSDException {
         if (!streamData.containsKey("AssetType")) {
             throw new LLSDException("Missing AssetType in stream data");
@@ -550,7 +560,10 @@ public final class SecondLifeLLSDUtils {
     }
 
     /**
-     * Result of LLSD validation.
+     * A class that holds the results of a validation check performed by
+     * {@link #validateSLStructure(Object, SLValidationRules)}.
+     * <p>
+     * It separates validation issues into errors and warnings.
      */
     public static class ValidationResult {
         private final List<String> errors = new ArrayList<>();

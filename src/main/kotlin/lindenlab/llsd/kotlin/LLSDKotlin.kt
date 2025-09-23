@@ -15,58 +15,67 @@ import java.time.Instant
 import java.util.*
 
 /**
- * Modern Kotlin wrapper for LLSD with DSL support and type safety.
- * 
- * <p>This class provides a Kotlin-idiomatic interface to LLSD data structures
- * with DSL builders, extension functions, and modern Kotlin features like
- * sealed classes, data classes, and coroutines support.</p>
- * 
- * @since 1.0
+ * A modern, type-safe Kotlin representation of an LLSD value, designed to be
+ * used with Kotlin's features like sealed classes, data classes, and DSLs.
+ *
+ * This sealed class hierarchy represents all possible types of data that can be
+ * stored in an LLSD structure. Each specific type is a data class, providing
+ * immutability and useful generated methods like `equals()`, `hashCode()`, and `copy()`.
+ *
+ * @see llsdOf
+ * @see llsdArray
+ * @see llsdMap
  */
 sealed class LLSDValue {
     
-    /**
-     * Undefined/null value
-     */
+    /** Represents an undefined or null LLSD value. */
     object Undefined : LLSDValue()
     
     /**
-     * Boolean value
+     * Represents an LLSD boolean value.
+     * @property value The underlying [kotlin.Boolean] value.
      */
     data class Boolean(val value: kotlin.Boolean) : LLSDValue()
     
     /**
-     * Integer value
+     * Represents an LLSD integer value.
+     * @property value The underlying [Int] value.
      */
     data class Integer(val value: Int) : LLSDValue()
     
     /**
-     * Real/double value
+     * Represents an LLSD real (floating-point) value.
+     * @property value The underlying [Double] value.
      */
     data class Real(val value: Double) : LLSDValue()
     
     /**
-     * String value
+     * Represents an LLSD string value.
+     * @property value The underlying [kotlin.String] value.
      */
     data class String(val value: kotlin.String) : LLSDValue()
     
     /**
-     * UUID value
+     * Represents an LLSD UUID value.
+     * @property value The underlying [java.util.UUID] value.
      */
     data class UUID(val value: java.util.UUID) : LLSDValue()
     
     /**
-     * Date value
+     * Represents an LLSD date value.
+     * @property value The underlying [Instant] value.
      */
     data class Date(val value: Instant) : LLSDValue()
     
     /**
-     * URI value
+     * Represents an LLSD URI value.
+     * @property value The underlying [java.net.URI] value.
      */
     data class URI(val value: java.net.URI) : LLSDValue()
     
     /**
-     * Binary data value
+     * Represents an LLSD binary data value.
+     * @property value The underlying [ByteArray].
      */
     data class Binary(val value: ByteArray) : LLSDValue() {
         override fun equals(other: Any?): kotlin.Boolean {
@@ -80,21 +89,30 @@ sealed class LLSDValue {
     }
     
     /**
-     * Array value with type-safe accessors
+     * Represents an LLSD array, which is a mutable list of [LLSDValue] objects.
+     * @property values The underlying [MutableList] holding the array elements.
      */
     data class Array(val values: MutableList<LLSDValue> = mutableListOf()) : LLSDValue() {
         
         constructor(vararg values: LLSDValue) : this(values.toMutableList())
         
         /**
-         * Get value at index with optional default
+         * Gets the value at the specified index, returning a default value if the
+         * index is out of bounds.
+         * @param index The index of the element to retrieve.
+         * @param default The value to return if the index is out of bounds.
+         * @return The [LLSDValue] at the given index, or the default value.
          */
         operator fun get(index: Int, default: LLSDValue = Undefined): LLSDValue {
             return values.getOrElse(index) { default }
         }
         
         /**
-         * Set value at index
+         * Sets the value at the specified index.
+         * If the index is out of bounds, the array will be automatically expanded
+         * with [LLSDValue.Undefined] placeholders.
+         * @param index The index to set.
+         * @param value The value to place at the index.
          */
         operator fun set(index: Int, value: LLSDValue) {
             // Expand array if necessary
@@ -105,7 +123,9 @@ sealed class LLSDValue {
         }
         
         /**
-         * Add value to array
+         * Appends a value to the end of the array.
+         * @param value The [LLSDValue] to add.
+         * @return This [Array] instance for method chaining.
          */
         fun add(value: LLSDValue): Array {
             values.add(value)
@@ -113,7 +133,9 @@ sealed class LLSDValue {
         }
         
         /**
-         * Add multiple values
+         * Appends multiple values to the end of the array.
+         * @param values The values to add.
+         * @return This [Array] instance for method chaining.
          */
         fun addAll(vararg values: LLSDValue): Array {
             this.values.addAll(values)
@@ -147,21 +169,28 @@ sealed class LLSDValue {
     }
     
     /**
-     * Map value with type-safe accessors and DSL support
+     * Represents an LLSD map, which is a mutable map from [String] to [LLSDValue].
+     * @property values The underlying [MutableMap] holding the key-value pairs.
      */
     data class Map(val values: MutableMap<kotlin.String, LLSDValue> = mutableMapOf()) : LLSDValue() {
         
         constructor(vararg pairs: Pair<kotlin.String, LLSDValue>) : this(mutableMapOf(*pairs))
         
         /**
-         * Get value by key with optional default
+         * Gets the value for the specified key, returning a default value if the
+         * key is not found.
+         * @param key The key to look up.
+         * @param default The value to return if the key is not found.
+         * @return The [LLSDValue] for the given key, or the default value.
          */
         operator fun get(key: kotlin.String, default: LLSDValue = Undefined): LLSDValue {
             return values[key] ?: default
         }
         
         /**
-         * Set value by key
+         * Sets the value for the specified key.
+         * @param key The key to set.
+         * @param value The value to associate with the key.
          */
         operator fun set(key: kotlin.String, value: LLSDValue) {
             values[key] = value
@@ -216,7 +245,18 @@ sealed class LLSDValue {
 }
 
 /**
- * DSL builder for LLSD arrays
+ * A DSL builder for constructing [LLSDValue.Array] instances in a declarative way.
+ *
+ * Example:
+ * ```kotlin
+ * val myArray = llsdArray {
+ *     add(1)
+ *     add("hello")
+ *     array {
+ *         add(true)
+ *     }
+ * }
+ * ```
  */
 @LLSDDslMarker
 class LLSDArrayBuilder {
@@ -279,7 +319,19 @@ class LLSDArrayBuilder {
 }
 
 /**
- * DSL builder for LLSD maps
+ * A DSL builder for constructing [LLSDValue.Map] instances in a declarative way.
+ *
+ * Example:
+ * ```kotlin
+ * val myMap = llsdMap {
+ *     "name" to "John"
+ *     "age" to 30
+ *     "items".array {
+ *         add("one")
+ *         add("two")
+ *     }
+ * }
+ * ```
  */
 @LLSDDslMarker
 class LLSDMapBuilder {
@@ -333,7 +385,9 @@ class LLSDMapBuilder {
 }
 
 /**
- * DSL marker annotation to prevent scope pollution
+ * A DSL marker annotation to prevent improper nesting of LLSD builders.
+ * This ensures that, for example, an `array` block inside a `map` block cannot
+ * access the `map` block's methods.
  */
 @DslMarker
 annotation class LLSDDslMarker
@@ -343,7 +397,11 @@ annotation class LLSDDslMarker
  */
 
 /**
- * Create LLSD array using DSL
+ * Creates an [LLSDValue.Array] using a type-safe DSL.
+ *
+ * @param init A lambda with receiver for [LLSDArrayBuilder] where the array
+ *             contents are defined.
+ * @return The newly constructed [LLSDValue.Array].
  */
 fun llsdArray(init: LLSDArrayBuilder.() -> Unit): LLSDValue.Array {
     val builder = LLSDArrayBuilder()
@@ -352,7 +410,11 @@ fun llsdArray(init: LLSDArrayBuilder.() -> Unit): LLSDValue.Array {
 }
 
 /**
- * Create LLSD map using DSL
+ * Creates an [LLSDValue.Map] using a type-safe DSL.
+ *
+ * @param init A lambda with receiver for [LLSDMapBuilder] where the map
+ *             contents are defined.
+ * @return The newly constructed [LLSDValue.Map].
  */
 fun llsdMap(init: LLSDMapBuilder.() -> Unit): LLSDValue.Map {
     val builder = LLSDMapBuilder()
@@ -361,7 +423,14 @@ fun llsdMap(init: LLSDMapBuilder.() -> Unit): LLSDValue.Map {
 }
 
 /**
- * Create LLSD value from any type
+ * Creates an [LLSDValue] by converting a standard Kotlin/Java object.
+ *
+ * This function attempts to find the most appropriate [LLSDValue] type for the
+ * given input. It handles primitives, strings, collections, and maps. Unknown
+ * types are converted to their string representation.
+ *
+ * @param value The object to convert.
+ * @return The corresponding [LLSDValue].
  */
 fun llsdOf(value: Any?): LLSDValue = when (value) {
     null -> LLSDValue.Undefined
@@ -401,7 +470,10 @@ fun llsdOf(value: Any?): LLSDValue = when (value) {
  */
 
 /**
- * Extract value as Boolean or return default
+ * Safely extracts the value as a [kotlin.Boolean], with a default fallback.
+ * Tries to convert from Integer (0 is false, non-zero is true) and String.
+ * @param default The value to return if extraction or conversion is not possible.
+ * @return The boolean value.
  */
 fun LLSDValue.asBoolean(default: kotlin.Boolean = false): kotlin.Boolean = when (this) {
     is LLSDValue.Boolean -> value
@@ -411,7 +483,10 @@ fun LLSDValue.asBoolean(default: kotlin.Boolean = false): kotlin.Boolean = when 
 }
 
 /**
- * Extract value as Int or return default
+ * Safely extracts the value as an [Int], with a default fallback.
+ * Tries to convert from Real (by truncation), Boolean (true=1, false=0), and String.
+ * @param default The value to return if extraction or conversion is not possible.
+ * @return The integer value.
  */
 fun LLSDValue.asInt(default: Int = 0): Int = when (this) {
     is LLSDValue.Integer -> value
@@ -422,7 +497,10 @@ fun LLSDValue.asInt(default: Int = 0): Int = when (this) {
 }
 
 /**
- * Extract value as Double or return default
+ * Safely extracts the value as a [Double], with a default fallback.
+ * Tries to convert from Integer and String.
+ * @param default The value to return if extraction or conversion is not possible.
+ * @return The double value.
  */
 fun LLSDValue.asDouble(default: Double = 0.0): Double = when (this) {
     is LLSDValue.Real -> value
@@ -432,7 +510,10 @@ fun LLSDValue.asDouble(default: Double = 0.0): Double = when (this) {
 }
 
 /**
- * Extract value as String or return default
+ * Safely extracts the value as a [String], with a default fallback.
+ * Converts most primitive types to their string representation.
+ * @param default The value to return if extraction is not possible.
+ * @return The string value.
  */
 fun LLSDValue.asString(default: kotlin.String = ""): kotlin.String = when (this) {
     is LLSDValue.String -> value
@@ -447,7 +528,10 @@ fun LLSDValue.asString(default: kotlin.String = ""): kotlin.String = when (this)
 }
 
 /**
- * Extract value as UUID or return default
+ * Safely extracts the value as a [java.util.UUID], with a default fallback.
+ * Tries to parse from a String.
+ * @param default The value to return if extraction or parsing is not possible.
+ * @return The UUID value, or null.
  */
 fun LLSDValue.asUUID(default: java.util.UUID? = null): java.util.UUID? = when (this) {
     is LLSDValue.UUID -> value
@@ -456,7 +540,10 @@ fun LLSDValue.asUUID(default: java.util.UUID? = null): java.util.UUID? = when (t
 }
 
 /**
- * Extract value as Date or return default
+ * Safely extracts the value as an [Instant], with a default fallback.
+ * Tries to parse from an ISO 8601 string.
+ * @param default The value to return if extraction or parsing is not possible.
+ * @return The Instant value, or null.
  */
 fun LLSDValue.asDate(default: Instant? = null): Instant? = when (this) {
     is LLSDValue.Date -> value
@@ -465,7 +552,10 @@ fun LLSDValue.asDate(default: Instant? = null): Instant? = when (this) {
 }
 
 /**
- * Extract value as URI or return default
+ * Safely extracts the value as a [java.net.URI], with a default fallback.
+ * Tries to parse from a String.
+ * @param default The value to return if extraction or parsing is not possible.
+ * @return The URI value, or null.
  */
 fun LLSDValue.asURI(default: java.net.URI? = null): java.net.URI? = when (this) {
     is LLSDValue.URI -> value
@@ -474,7 +564,10 @@ fun LLSDValue.asURI(default: java.net.URI? = null): java.net.URI? = when (this) 
 }
 
 /**
- * Extract value as ByteArray or return default
+ * Safely extracts the value as a [ByteArray], with a default fallback.
+ * Tries to convert from a String.
+ * @param default The value to return if extraction or conversion is not possible.
+ * @return The byte array.
  */
 fun LLSDValue.asByteArray(default: ByteArray = byteArrayOf()): ByteArray = when (this) {
     is LLSDValue.Binary -> value
@@ -483,7 +576,9 @@ fun LLSDValue.asByteArray(default: ByteArray = byteArrayOf()): ByteArray = when 
 }
 
 /**
- * Extract value as Array or return default
+ * Safely casts the value as an [LLSDValue.Array], with a default fallback.
+ * @param default The empty array to return if the value is not an array.
+ * @return The [LLSDValue.Array].
  */
 fun LLSDValue.asArray(default: LLSDValue.Array = LLSDValue.Array()): LLSDValue.Array = when (this) {
     is LLSDValue.Array -> this
@@ -491,7 +586,9 @@ fun LLSDValue.asArray(default: LLSDValue.Array = LLSDValue.Array()): LLSDValue.A
 }
 
 /**
- * Extract value as Map or return default
+ * Safely casts the value as an [LLSDValue.Map], with a default fallback.
+ * @param default The empty map to return if the value is not a map.
+ * @return The [LLSDValue.Map].
  */
 fun LLSDValue.asMap(default: LLSDValue.Map = LLSDValue.Map()): LLSDValue.Map = when (this) {
     is LLSDValue.Map -> this
@@ -499,7 +596,12 @@ fun LLSDValue.asMap(default: LLSDValue.Map = LLSDValue.Map()): LLSDValue.Map = w
 }
 
 /**
- * Safe array access with path notation
+ * Provides safe, path-like access to nested arrays.
+ *
+ * Example: `myArray[0, 1, 2]` to access `myArray.values[0].values[1].values[2]`.
+ *
+ * @param indices A vararg of indices representing the path into the nested arrays.
+ * @return The value at the specified path, or [LLSDValue.Undefined] if the path is invalid.
  */
 operator fun LLSDValue.Array.get(vararg indices: Int): LLSDValue {
     var current: LLSDValue = this
@@ -514,7 +616,12 @@ operator fun LLSDValue.Array.get(vararg indices: Int): LLSDValue {
 }
 
 /**
- * Safe map access with path notation
+ * Provides safe, path-like access to nested maps.
+ *
+ * Example: `myMap["user", "profile", "name"]`
+ *
+ * @param keys A vararg of keys representing the path into the nested maps.
+ * @return The value at the specified path, or [LLSDValue.Undefined] if the path is invalid.
  */
 operator fun LLSDValue.Map.get(vararg keys: kotlin.String): LLSDValue {
     var current: LLSDValue = this
@@ -529,7 +636,13 @@ operator fun LLSDValue.Map.get(vararg keys: kotlin.String): LLSDValue {
 }
 
 /**
- * Path-based access for mixed array/map navigation
+ * Provides safe, path-based access for navigating a mix of nested arrays and maps.
+ *
+ * Example: `myValue.path("users", 0, "name")`
+ *
+ * @param elements A vararg of path elements, which can be [Int] for array indices
+ *                 or [String] for map keys.
+ * @return The value at the specified path, or [LLSDValue.Undefined] if the path is invalid.
  */
 fun LLSDValue.path(vararg elements: Any): LLSDValue {
     var current: LLSDValue = this
@@ -545,7 +658,11 @@ fun LLSDValue.path(vararg elements: Any): LLSDValue {
 }
 
 /**
- * Convert LLSDValue to Java LLSD for interoperability
+ * Converts this Kotlin [LLSDValue] into its equivalent Java [LLSD] representation.
+ *
+ * This is useful for interoperability with older Java-based LLSD code.
+ *
+ * @return The equivalent [LLSD] object.
  */
 fun LLSDValue.toJavaLLSD(): LLSD {
     return LLSD(toJavaObject())
@@ -566,14 +683,19 @@ private fun LLSDValue.toJavaObject(): Any? = when (this) {
 }
 
 /**
- * Convert Java LLSD to Kotlin LLSDValue
+ * Converts a Java [LLSD] object into its equivalent Kotlin [LLSDValue] representation.
+ *
+ * @return The equivalent [LLSDValue] object.
  */
 fun LLSD.toKotlinLLSD(): LLSDValue {
     return llsdOf(this.getContent())
 }
 
 /**
- * Pretty print LLSD in Kotlin style
+ * Creates a formatted, indented string representation of the [LLSDValue].
+ *
+ * @param indent The starting indentation level.
+ * @return A pretty-printed string.
  */
 fun LLSDValue.toPrettyString(indent: Int = 0): kotlin.String {
     val indentStr = "  ".repeat(indent)
@@ -609,7 +731,13 @@ fun LLSDValue.toPrettyString(indent: Int = 0): kotlin.String {
 }
 
 /**
- * Kotlin-style LLSD equality check
+ * Performs a deep equality check between two [LLSDValue] objects.
+ *
+ * This method recursively compares the contents of nested arrays and maps,
+ * unlike the standard `equals` which performs a shallow comparison.
+ *
+ * @param other The other [LLSDValue] to compare against.
+ * @return `true` if the values are deeply equal, `false` otherwise.
  */
 fun LLSDValue.deepEquals(other: LLSDValue): kotlin.Boolean = when {
     this === other -> true
@@ -625,7 +753,12 @@ fun LLSDValue.deepEquals(other: LLSDValue): kotlin.Boolean = when {
 }
 
 /**
- * Create a deep copy of LLSD value
+ * Creates a deep copy of this [LLSDValue].
+ *
+ * This method recursively copies the contents of nested arrays and maps,
+ * resulting in a completely independent new object.
+ *
+ * @return A deep copy of the [LLSDValue].
  */
 fun LLSDValue.deepCopy(): LLSDValue = when (this) {
     LLSDValue.Undefined -> LLSDValue.Undefined

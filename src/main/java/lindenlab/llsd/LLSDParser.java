@@ -23,27 +23,19 @@ import java.util.*;
 import java.util.Base64;
 
 /**
- * Parser for LLSD (Linden Lab Structured Data) documents.
- * 
- * <p>This parser converts XML-formatted LLSD documents into Java objects.
- * It supports all standard LLSD data types and handles proper type conversion.</p>
- * 
- * <p>Example usage:</p>
- * <pre>{@code
- * LLSDParser parser = new LLSDParser();
- * try (InputStream input = Files.newInputStream(Paths.get("document.xml"))) {
- *     LLSD document = parser.parse(input);
- *     Object content = document.getContent();
- *     // Process the content...
- * }
- * }</pre>
- * 
- * <p>For more information about LLSD format, see 
- * <a href="http://wiki.secondlife.com/wiki/LLSD">the LLSD specification</a>.</p>
- * 
- * @since 1.0
- * @author University of St. Andrews (original implementation)
+ * A parser for LLSD (Linden Lab Structured Data) in its traditional XML format.
+ * <p>
+ * This class is responsible for taking an {@link InputStream} containing an
+ * LLSD XML document and converting it into a Java object representation, which is
+ * then wrapped in an {@link LLSD} object. It uses the standard Java XML parsing
+ * APIs (DOM) to process the document.
+ * <p>
+ * The parser correctly interprets the XML tags that correspond to LLSD data
+ * types (e.g., {@code <integer>}, {@code <string>}, {@code <map>}, {@code <array>})
+ * and converts their contents into the appropriate Java types.
+ *
  * @see LLSD
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#XML_Serialization">LLSD XML Specification</a>
  */
 public class LLSDParser {
     private final DateFormat iso9601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -53,6 +45,13 @@ public class LLSDParser {
      */
     private final DocumentBuilder documentBuilder;
 
+    /**
+     * Initializes a new instance of the {@code LLSDParser}.
+     * <p>
+     * This constructor sets up the underlying XML document builder.
+     *
+     * @throws ParserConfigurationException if a JAXP parser cannot be created.
+     */
     public      LLSDParser()
         throws ParserConfigurationException {
         final DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
@@ -60,6 +59,13 @@ public class LLSDParser {
         this.documentBuilder = factory.newDocumentBuilder();
     }
 
+    /**
+     * Helper method to filter a {@link NodeList}, returning only nodes that are
+     * actual elements.
+     *
+     * @param nodes The list of nodes to filter.
+     * @return A list containing only the {@code ELEMENT_NODE} instances from the input.
+     */
     private List<Node> extractElements(final NodeList nodes) {
         final List<Node> trimmedNodes = new ArrayList<>();
         
@@ -74,15 +80,18 @@ public class LLSDParser {
     }
 
     /**
-     * Parses an LLSD document from the given input stream.
+     * Parses an LLSD document from an XML input stream.
+     * <p>
+     * This is the main entry point for parsing an XML-based LLSD document. It
+     * reads the stream, builds a DOM tree, and then traverses the tree to
+     * construct the corresponding LLSD object structure.
      *
-     * @param xmlFile the XML input stream to read and parse as LLSD.
-     * @throws IOException if there was a problem reading from the input
-     * stream.
-     * @throws LLSDException if the document is valid XML, but invalid LLSD,
-     * for example if a date cannot be parsed.
-     * @throws SAXException if there was a problem parsing the XML structure of
-     * the document.
+     * @param xmlFile The input stream containing the XML LLSD data.
+     * @return An {@link LLSD} object representing the parsed data.
+     * @throws IOException   if an I/O error occurs while reading the stream.
+     * @throws LLSDException if the document is not valid LLSD (e.g., incorrect
+     *                       structure or invalid data formats).
+     * @throws SAXException  if a general XML parsing error occurs.
      */
     public LLSD parse(final InputStream xmlFile)
         throws IOException, LLSDException, SAXException {
@@ -216,6 +225,17 @@ public class LLSDParser {
         return valueMap;
     }
 
+    /**
+     * Recursively parses a single DOM node and converts it into an LLSD value.
+     * <p>
+     * This method is the core of the parser's logic. It examines the node's name
+     * to determine the LLSD data type and then calls the appropriate helper
+     * method to parse its content.
+     *
+     * @param node The DOM node to parse.
+     * @return A Java object representing the parsed LLSD value.
+     * @throws LLSDException if the node is of an unknown or invalid type.
+     */
     private Object parseNode(final Node node)
         throws LLSDException {
         boolean isUndefined = false;
