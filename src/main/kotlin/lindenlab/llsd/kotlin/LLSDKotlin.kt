@@ -307,8 +307,6 @@ class LLSDArrayBuilder {
     }
     
     operator fun kotlin.Boolean.unaryPlus() = add(this)
-    operator fun Int.unaryPlus() = add(this)
-    operator fun Double.unaryPlus() = add(this)
     operator fun kotlin.String.unaryPlus() = add(this)
     operator fun java.util.UUID.unaryPlus() = add(this)
     operator fun Instant.unaryPlus() = add(this)
