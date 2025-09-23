@@ -20,10 +20,30 @@ import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Base64;
 
 /**
- * LLSD parser in Java. See <a href="http://wiki.secondlife.com/wiki/LLSD">http://wiki.secondlife.com/wiki/LLSD</a>
- * for more information on LLSD.
+ * Parser for LLSD (Linden Lab Structured Data) documents.
+ * 
+ * <p>This parser converts XML-formatted LLSD documents into Java objects.
+ * It supports all standard LLSD data types and handles proper type conversion.</p>
+ * 
+ * <p>Example usage:</p>
+ * <pre>{@code
+ * LLSDParser parser = new LLSDParser();
+ * try (InputStream input = Files.newInputStream(Paths.get("document.xml"))) {
+ *     LLSD document = parser.parse(input);
+ *     Object content = document.getContent();
+ *     // Process the content...
+ * }
+ * }</pre>
+ * 
+ * <p>For more information about LLSD format, see 
+ * <a href="http://wiki.secondlife.com/wiki/LLSD">the LLSD specification</a>.</p>
+ * 
+ * @since 1.0
+ * @author University of St. Andrews (original implementation)
+ * @see LLSD
  */
 public class LLSDParser {
     private final DateFormat iso9601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -41,19 +61,15 @@ public class LLSDParser {
     }
 
     private List<Node> extractElements(final NodeList nodes) {
-        final List<Node> trimmedNodes = new ArrayList<Node>();
-
+        final List<Node> trimmedNodes = new ArrayList<>();
+        
         for (int nodeIdx = 0; nodeIdx < nodes.getLength(); nodeIdx++) {
             final Node node = nodes.item(nodeIdx);
-            switch (node.getNodeType()) {
-            case Node.ELEMENT_NODE:
+            if (node.getNodeType() == Node.ELEMENT_NODE) {
                 trimmedNodes.add(node);
-                break;
-            default:
-                break;
             }
         }
-
+        
         return trimmedNodes;
     }
 
@@ -101,11 +117,11 @@ public class LLSDParser {
 
     private List<Object> parseArray(final NodeList nodeList)
         throws LLSDException {
-        final List<Object> value = new ArrayList<Object>();
+        final List<Object> value = new ArrayList<>();
 
         for (int nodeIdx = 0; nodeIdx < nodeList.getLength(); nodeIdx++) {
             final Node node = nodeList.item(nodeIdx);
-
+            
             if (node.getNodeType() == Node.ELEMENT_NODE) {
                 value.add(parseNode(node));
             }
@@ -151,8 +167,8 @@ public class LLSDParser {
         }
 
         try {
-            // XXX: Don't just assume the default parser is okay for SSLD, check
-            value = new Integer(elementContents);
+            // Parse integer value using modern method
+            value = Integer.valueOf(elementContents);
         } catch(NumberFormatException e) {
             throw new LLSDException("Unable to parse LLSD integer value, received \""
                 + elementContents + "\".", e);
@@ -164,7 +180,7 @@ public class LLSDParser {
     private Map<String, Object> parseMap(final NodeList nodeList)
         throws LLSDException {
         final List<Node> trimmedNodes = extractElements(nodeList);
-        final Map<String, Object> valueMap = new HashMap<String, Object>();
+        final Map<String, Object> valueMap = new HashMap<>();
 
         if ((trimmedNodes.size() % 2) != 0) {
             throw new LLSDException("Unable to parse LLSD map as it has odd number of nodes: "
@@ -209,12 +225,9 @@ public class LLSDParser {
 
         childNodes = node.getChildNodes();
 
-        // Handle compound types (array and map) and stupid decisions by Linden
-        // Labs (binary).
+        // Handle compound types (array and map)
         if (nodeName.equals("array")) {
             return parseArray(childNodes);
-        } else if (nodeName.equals("binary")) {
-            throw new LLSDException("\"binary\" node type not implemented because it's a stupid idea that breaks how XML works. In specific, XML has a character set, binary data does not, and mixing the two is a recipe for disaster. Linden Labs should have used base 64 encode if they absolutely must, or attached binary content using a MIME multipart type.");
         } else if (nodeName.equals("map")) {
             return parseMap(childNodes);
         }
@@ -234,6 +247,22 @@ public class LLSDParser {
                 break;
             default:
                 break;
+            }
+        }
+
+        // Handle binary after nodeText is built
+        if (nodeName.equals("binary")) {
+            if (isUndefined) {
+                return LLSDUndefined.BINARY;
+            }
+            String base64Content = nodeText.toString().trim();
+            if (base64Content.isEmpty()) {
+                return new byte[0]; // Empty binary data
+            }
+            try {
+                return Base64.getDecoder().decode(base64Content);
+            } catch (IllegalArgumentException e) {
+                throw new LLSDException("Invalid base64 binary data: " + base64Content, e);
             }
         }
 
@@ -286,8 +315,8 @@ public class LLSDParser {
         }
 
         try {
-            // XXX: Don't just assume the default parser is okay for SSLD, check
-            value = new Double(elementContents);
+            // Parse double value using modern method
+            value = Double.valueOf(elementContents);
         } catch(NumberFormatException e) {
             throw new LLSDException("Unable to parse LLSD real value, received \""
                 + elementContents + "\".", e);

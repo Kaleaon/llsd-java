@@ -13,13 +13,35 @@ import java.net.URI;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * LLSD root, returns by an LLSDParser.
+ * LLSD (Linden Lab Structured Data) root document container.
+ * 
+ * <p>LLSD is a data serialization format used by Linden Lab's Second Life platform.
+ * This class represents a parsed LLSD document and provides methods to access its
+ * content and serialize it back to XML format.</p>
+ * 
+ * <p>The content can be any of the supported LLSD data types:
+ * <ul>
+ * <li>{@link java.lang.Boolean} - boolean values</li>
+ * <li>{@link java.lang.Integer} - integer values</li>
+ * <li>{@link java.lang.Double} - real/double values</li>
+ * <li>{@link java.lang.String} - string values</li>
+ * <li>{@link java.util.Date} - date values</li>
+ * <li>{@link java.net.URI} - URI values</li>
+ * <li>{@link java.util.UUID} - UUID values</li>
+ * <li>{@link java.util.List} - arrays of LLSD values</li>
+ * <li>{@link java.util.Map} - maps with string keys and LLSD values</li>
+ * </ul></p>
+ * 
+ * @since 1.0
+ * @author University of St. Andrews (original implementation)
+ * @see LLSDParser
  */
 public class LLSD {
     private final Object content;
@@ -206,6 +228,7 @@ public class LLSD {
         assert null != toSerialise;
 
         if (toSerialise instanceof Map) {
+            @SuppressWarnings("unchecked")
             final Map<String, Object> serialiseMap = (Map<String, Object>)toSerialise;
 
             writer.write("<map>\n");
@@ -217,8 +240,10 @@ public class LLSD {
             }
             writer.write("</map>\n");
         } else if (toSerialise instanceof List) {
+            @SuppressWarnings("unchecked")
+            final List<Object> serialiseList = (List<Object>)toSerialise;
             writer.write("<array>\n");
-            for (Object current: (List<Object>)toSerialise) {
+            for (Object current: serialiseList) {
                 writer.write("\t");
                 serialiseElement(writer, current);
             }
@@ -255,6 +280,11 @@ public class LLSD {
         } else if (toSerialise instanceof URI) {
             writer.write("<uri>"
                 + encodeXML(toSerialise.toString()) + "</uri>");
+        } else if (toSerialise instanceof byte[]) {
+            // Handle binary data as base64 encoded
+            byte[] binaryData = (byte[]) toSerialise;
+            String base64Data = Base64.getEncoder().encodeToString(binaryData);
+            writer.write("<binary>" + base64Data + "</binary>\n");
         } else if (toSerialise instanceof LLSDUndefined) {
             switch((LLSDUndefined)toSerialise) {
             case BINARY:
