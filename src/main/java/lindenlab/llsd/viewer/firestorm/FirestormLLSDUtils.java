@@ -15,6 +15,7 @@ import lindenlab.llsd.viewer.secondlife.SecondLifeLLSDUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 
 /**
  * Firestorm specific LLSD utilities and extensions.
@@ -79,31 +80,83 @@ public final class FirestormLLSDUtils {
     
     /**
      * RLV (Restrained Life Viewer) command structure.
+     * 
+     * <p>Represents an RLV command following Second Life RLV standards.
+     * All RLV commands must have a command string, and optionally parameters,
+     * options, and source identification for security tracking.</p>
      */
     public static class RLVCommand {
-        public final String command;
-        public final String param;
-        public final String option;
-        public final UUID sourceId;
+        private final String command;
+        private final String param;
+        private final String option;
+        private final UUID sourceId;
         
+        /**
+         * Constructs a new RLV command.
+         * 
+         * @param command the RLV command (required, cannot be null or empty)
+         * @param param the command parameter (can be null or empty)
+         * @param option the command option (can be null or empty)
+         * @param sourceId the UUID of the command source (required for security)
+         * @throws IllegalArgumentException if command is null/empty or sourceId is null
+         */
         public RLVCommand(String command, String param, String option, UUID sourceId) {
-            this.command = command;
-            this.param = param;
-            this.option = option;
+            if (command == null || command.trim().isEmpty()) {
+                throw new IllegalArgumentException("RLV command cannot be null or empty");
+            }
+            if (sourceId == null) {
+                throw new IllegalArgumentException("RLV sourceId cannot be null");
+            }
+            
+            this.command = command.trim();
+            this.param = param != null ? param.trim() : "";
+            this.option = option != null ? option.trim() : "";
             this.sourceId = sourceId;
+        }
+        
+        /**
+         * Gets the RLV command string.
+         * @return the command string, never null or empty
+         */
+        public String getCommand() {
+            return command;
+        }
+        
+        /**
+         * Gets the RLV command parameter.
+         * @return the parameter string, never null but may be empty
+         */
+        public String getParam() {
+            return param;
+        }
+        
+        /**
+         * Gets the RLV command option.
+         * @return the option string, never null but may be empty
+         */
+        public String getOption() {
+            return option;
+        }
+        
+        /**
+         * Gets the source UUID for this command.
+         * @return the source UUID, never null
+         */
+        public UUID getSourceId() {
+            return sourceId;
         }
         
         /**
          * Convert to LLSD representation.
          * 
-         * @return LLSD map containing RLV command data
+         * @return LLSD map containing RLV command data, never null
          */
         public Map<String, Object> toLLSD() {
             Map<String, Object> rlvData = new HashMap<>();
-            rlvData.put("Command", command != null ? command : "");
-            rlvData.put("Parameter", param != null ? param : "");
-            rlvData.put("Option", option != null ? option : "");
-            rlvData.put("SourceID", sourceId);
+            rlvData.put("Command", command);
+            rlvData.put("Parameter", param);
+            rlvData.put("Option", option);
+            rlvData.put("SourceID", sourceId.toString());
             rlvData.put("Timestamp", System.currentTimeMillis() / 1000.0);
             return rlvData;
         }
@@ -111,22 +164,52 @@ public final class FirestormLLSDUtils {
         /**
          * Parse from LLSD representation.
          * 
-         * @param llsdData the LLSD data
-         * @return parsed RLV command
-         * @throws LLSDException if parsing fails
+         * @param llsdData the LLSD data to parse (must be a Map)
+         * @return parsed RLV command, never null
+         * @throws LLSDException if parsing fails or data is invalid
          */
         public static RLVCommand fromLLSD(Object llsdData) throws LLSDException {
+            if (llsdData == null) {
+                throw new LLSDException("RLV command data cannot be null");
+            }
             if (!(llsdData instanceof Map)) {
-                throw new LLSDException("RLV command must be a map");
+                throw new LLSDException("RLV command must be a map, got: " + llsdData.getClass().getSimpleName());
             }
             
             @SuppressWarnings("unchecked")
             Map<String, Object> data = (Map<String, Object>) llsdData;
             
-            String command = data.get("Command").toString();
-            String param = data.containsKey("Parameter") ? data.get("Parameter").toString() : "";
-            String option = data.containsKey("Option") ? data.get("Option").toString() : "";
-            UUID sourceId = (UUID) data.get("SourceID");
+            // Extract command (required)
+            Object commandObj = data.get("Command");
+            if (commandObj == null) {
+                throw new LLSDException("RLV command missing required 'Command' field");
+            }
+            String command = commandObj.toString();
+            
+            // Extract parameter (optional)
+            String param = data.containsKey("Parameter") ? 
+                          data.get("Parameter").toString() : "";
+            
+            // Extract option (optional)  
+            String option = data.containsKey("Option") ? 
+                           data.get("Option").toString() : "";
+            
+            // Extract sourceId (required)
+            Object sourceIdObj = data.get("SourceID");
+            UUID sourceId;
+            if (sourceIdObj == null) {
+                throw new LLSDException("RLV command missing required 'SourceID' field");
+            }
+            
+            try {
+                if (sourceIdObj instanceof UUID) {
+                    sourceId = (UUID) sourceIdObj;
+                } else {
+                    sourceId = UUID.fromString(sourceIdObj.toString());
+                }
+            } catch (IllegalArgumentException e) {
+                throw new LLSDException("Invalid SourceID format: " + sourceIdObj, e);
+            }
             
             return new RLVCommand(command, param, option, sourceId);
         }
@@ -135,14 +218,15 @@ public final class FirestormLLSDUtils {
     /**
      * Create an LLSD structure for Firestorm radar data.
      * 
-     * @param agentId the agent UUID
-     * @param name the agent display name
-     * @param userName the agent username
-     * @param position the agent position
-     * @param distance the distance from viewer
+     * @param agentId the agent UUID (required)
+     * @param name the agent display name (can be null)
+     * @param userName the agent username (can be null)
+     * @param position the agent position as [x, y, z] array (can be null)
+     * @param distance the distance from viewer (must be >= 0)
      * @param typing whether the agent is typing
-     * @param attachments list of agent attachments
-     * @return LLSD map containing radar data
+     * @param attachments list of agent attachments (can be null)
+     * @return LLSD map containing radar data, never null
+     * @throws IllegalArgumentException if agentId is null or distance is negative
      */
     public static Map<String, Object> createRadarData(UUID agentId,
                                                       String name,
@@ -151,20 +235,30 @@ public final class FirestormLLSDUtils {
                                                       double distance,
                                                       boolean typing,
                                                       List<Map<String, Object>> attachments) {
+        if (agentId == null) {
+            throw new IllegalArgumentException("Agent ID cannot be null");
+        }
+        if (distance < 0) {
+            throw new IllegalArgumentException("Distance cannot be negative: " + distance);
+        }
+        
         Map<String, Object> radarData = new HashMap<>();
-        radarData.put("AgentID", agentId);
+        radarData.put("AgentID", agentId.toString());
         radarData.put("DisplayName", name != null ? name : "");
         radarData.put("UserName", userName != null ? userName : "");
         radarData.put("Distance", distance);
         radarData.put("IsTyping", typing);
         radarData.put("LastSeen", System.currentTimeMillis() / 1000.0);
         
-        if (position != null && position.length == 3) {
+        if (position != null) {
+            if (position.length != 3) {
+                throw new IllegalArgumentException("Position array must have exactly 3 elements (x, y, z)");
+            }
             radarData.put("Position", Arrays.stream(position).boxed().toList());
         }
         
         if (attachments != null && !attachments.isEmpty()) {
-            radarData.put("Attachments", attachments);
+            radarData.put("Attachments", new ArrayList<>(attachments)); // Defensive copy
         }
         
         return radarData;
@@ -173,24 +267,29 @@ public final class FirestormLLSDUtils {
     /**
      * Create an LLSD structure for Firestorm bridge communication.
      * 
-     * @param command the bridge command
-     * @param parameters the command parameters
-     * @param requestId the request identifier
-     * @param priority the message priority (0-3)
-     * @return LLSD map containing bridge data
+     * @param command the bridge command (required)
+     * @param parameters the command parameters (can be null)
+     * @param requestId the request identifier (auto-generated if null)
+     * @param priority the message priority 0-3 (clamped to valid range)
+     * @return LLSD map containing bridge data, never null
+     * @throws IllegalArgumentException if command is null or empty
      */
     public static Map<String, Object> createBridgeMessage(String command,
                                                           Map<String, Object> parameters,
                                                           String requestId,
                                                           int priority) {
+        if (command == null || command.trim().isEmpty()) {
+            throw new IllegalArgumentException("Bridge command cannot be null or empty");
+        }
+        
         Map<String, Object> bridgeData = new HashMap<>();
-        bridgeData.put("Command", command != null ? command : "");
+        bridgeData.put("Command", command.trim());
         bridgeData.put("RequestID", requestId != null ? requestId : UUID.randomUUID().toString());
-        bridgeData.put("Priority", Math.max(0, Math.min(3, priority)));
+        bridgeData.put("Priority", Math.max(0, Math.min(3, priority))); // Clamp to 0-3 range
         bridgeData.put("Timestamp", System.currentTimeMillis() / 1000.0);
         
         if (parameters != null && !parameters.isEmpty()) {
-            bridgeData.put("Parameters", parameters);
+            bridgeData.put("Parameters", new HashMap<>(parameters)); // Defensive copy
         }
         
         return bridgeData;
@@ -199,13 +298,14 @@ public final class FirestormLLSDUtils {
     /**
      * Create an LLSD structure for Firestorm performance statistics.
      * 
-     * @param fps the current FPS
-     * @param bandwidth the current bandwidth usage
-     * @param memoryUsed the memory usage in MB
-     * @param renderTime the render time in milliseconds
-     * @param scriptTime the script processing time
-     * @param triangles the number of triangles rendered
-     * @return LLSD map containing performance data
+     * @param fps the current FPS (must be >= 0)
+     * @param bandwidth the current bandwidth usage in bytes/sec (must be >= 0)
+     * @param memoryUsed the memory usage in MB (must be >= 0)
+     * @param renderTime the render time in milliseconds (must be >= 0)
+     * @param scriptTime the script processing time in milliseconds (must be >= 0)
+     * @param triangles the number of triangles rendered (must be >= 0)
+     * @return LLSD map containing performance data, never null
+     * @throws IllegalArgumentException if any parameter is negative
      */
     public static Map<String, Object> createPerformanceStats(double fps,
                                                              double bandwidth,
@@ -213,6 +313,25 @@ public final class FirestormLLSDUtils {
                                                              double renderTime,
                                                              double scriptTime,
                                                              int triangles) {
+        if (fps < 0) {
+            throw new IllegalArgumentException("FPS cannot be negative: " + fps);
+        }
+        if (bandwidth < 0) {
+            throw new IllegalArgumentException("Bandwidth cannot be negative: " + bandwidth);
+        }
+        if (memoryUsed < 0) {
+            throw new IllegalArgumentException("Memory usage cannot be negative: " + memoryUsed);
+        }
+        if (renderTime < 0) {
+            throw new IllegalArgumentException("Render time cannot be negative: " + renderTime);
+        }
+        if (scriptTime < 0) {
+            throw new IllegalArgumentException("Script time cannot be negative: " + scriptTime);
+        }
+        if (triangles < 0) {
+            throw new IllegalArgumentException("Triangle count cannot be negative: " + triangles);
+        }
+        
         Map<String, Object> perfStats = new HashMap<>();
         perfStats.put("FPS", fps);
         perfStats.put("Bandwidth", bandwidth);
@@ -228,13 +347,13 @@ public final class FirestormLLSDUtils {
     /**
      * Create an LLSD structure for Firestorm media data.
      * 
-     * @param mediaUrl the media URL
-     * @param mediaType the media type (audio/video)
+     * @param mediaUrl the media URL (can be null)
+     * @param mediaType the media type (audio/video, can be null)
      * @param autoPlay whether to auto-play
      * @param autoScale whether to auto-scale
      * @param looping whether to loop playback
-     * @param volume the playback volume (0.0-1.0)
-     * @return LLSD map containing media data
+     * @param volume the playback volume (will be clamped to 0.0-1.0 range)
+     * @return LLSD map containing media data, never null
      */
     public static Map<String, Object> createMediaData(String mediaUrl,
                                                       String mediaType,
@@ -243,12 +362,13 @@ public final class FirestormLLSDUtils {
                                                       boolean looping,
                                                       double volume) {
         Map<String, Object> mediaData = new HashMap<>();
-        mediaData.put("URL", mediaUrl != null ? mediaUrl : "");
-        mediaData.put("Type", mediaType != null ? mediaType : "");
+        mediaData.put("URL", mediaUrl != null ? mediaUrl.trim() : "");
+        mediaData.put("Type", mediaType != null ? mediaType.trim() : "");
         mediaData.put("AutoPlay", autoPlay);
         mediaData.put("AutoScale", autoScale);
         mediaData.put("Looping", looping);
-        mediaData.put("Volume", Math.max(0.0, Math.min(1.0, volume)));
+        mediaData.put("Volume", Math.max(0.0, Math.min(1.0, volume))); // Clamp to 0.0-1.0 range
+        mediaData.put("Timestamp", System.currentTimeMillis() / 1000.0);
         
         return mediaData;
     }
@@ -309,37 +429,58 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Check if a Firestorm version is compatible.
+     * Check if a Firestorm version is compatible with the minimum required version.
      * 
-     * @param version the version to check
-     * @param minVersion the minimum required version
-     * @return true if compatible
+     * <p>Supports semantic versioning format (major.minor.patch.build) and handles
+     * various edge cases including missing components and non-numeric parts.</p>
+     * 
+     * @param version the version to check (can be null)
+     * @param minVersion the minimum required version (can be null)
+     * @return true if version meets or exceeds minimum requirement
      */
     private static boolean isCompatibleFSVersion(String version, String minVersion) {
-        if (version == null || minVersion == null) {
+        if (version == null || minVersion == null || 
+            version.trim().isEmpty() || minVersion.trim().isEmpty()) {
             return false;
         }
         
-        // Simple version comparison (assumes format like "6.6.17.66677")
-        String[] versionParts = version.split("\\.");
-        String[] minVersionParts = minVersion.split("\\.");
+        // Normalize versions by removing leading/trailing whitespace
+        String[] versionParts = version.trim().split("\\.");
+        String[] minVersionParts = minVersion.trim().split("\\.");
         
-        for (int i = 0; i < Math.min(versionParts.length, minVersionParts.length); i++) {
-            try {
-                int v = Integer.parseInt(versionParts[i]);
-                int min = Integer.parseInt(minVersionParts[i]);
-                
-                if (v > min) return true;
-                if (v < min) return false;
-            } catch (NumberFormatException e) {
-                // Fallback to string comparison
-                int comparison = versionParts[i].compareTo(minVersionParts[i]);
-                if (comparison > 0) return true;
-                if (comparison < 0) return false;
-            }
+        // Compare version components
+        int maxLength = Math.max(versionParts.length, minVersionParts.length);
+        for (int i = 0; i < maxLength; i++) {
+            int v = parseVersionComponent(versionParts, i);
+            int min = parseVersionComponent(minVersionParts, i);
+            
+            if (v > min) return true;
+            if (v < min) return false;
+            // If equal, continue to next component
         }
         
-        return versionParts.length >= minVersionParts.length;
+        return true; // All components are equal, so it's compatible
+    }
+    
+    /**
+     * Parse a version component, handling missing parts and non-numeric values.
+     * 
+     * @param parts the version parts array
+     * @param index the index to parse
+     * @return the numeric value, or 0 if missing/invalid
+     */
+    private static int parseVersionComponent(String[] parts, int index) {
+        if (index >= parts.length) {
+            return 0; // Missing component defaults to 0
+        }
+        
+        try {
+            return Integer.parseInt(parts[index].trim());
+        } catch (NumberFormatException e) {
+            // For non-numeric parts, use string comparison
+            // Return a hash-based number for consistent comparison
+            return parts[index].trim().hashCode() & Integer.MAX_VALUE;
+        }
     }
     
     /**
