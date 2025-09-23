@@ -298,7 +298,7 @@ public class LLSDNotationParser {
             // Check for full word
             String remaining = tokenizer.consumeUntil(',', ']', '}', ' ', '\t', '\n', '\r');
             String fullWord = ch + remaining;
-            if (fullWord.equalsIgnoreCase("true")) {
+            if (fullWord.equalsIgnoreCase("true") || fullWord.equalsIgnoreCase("t")) {
                 return Boolean.TRUE;
             } else {
                 throw new LLSDException("Invalid boolean value: " + fullWord);
@@ -307,7 +307,7 @@ public class LLSDNotationParser {
             // Check for full word
             String remaining = tokenizer.consumeUntil(',', ']', '}', ' ', '\t', '\n', '\r');
             String fullWord = ch + remaining;
-            if (fullWord.equalsIgnoreCase("false")) {
+            if (fullWord.equalsIgnoreCase("false") || fullWord.equalsIgnoreCase("f")) {
                 return Boolean.FALSE;
             } else {
                 throw new LLSDException("Invalid boolean value: " + fullWord);

@@ -34,6 +34,13 @@ class LLSDNotationTest {
         }
 
         @Test
+        @DisplayName("Should parse single-character boolean notation")
+        void testParseSingleCharBoolean() throws Exception {
+            assertNotationEquals("t", true);
+            assertNotationEquals("f", false);
+        }
+
+        @Test
         @DisplayName("Should parse UUID notation")
         void testParseUUID() throws Exception {
             String uuidStr = "550e8400-e29b-41d4-a716-446655440000";
