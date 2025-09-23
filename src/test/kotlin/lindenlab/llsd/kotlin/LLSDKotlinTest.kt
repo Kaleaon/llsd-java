@@ -43,10 +43,10 @@ class LLSDKotlinTest {
         @DisplayName("Should build simple array using DSL")
         fun testSimpleArrayDSL() {
             val array = llsdArray {
-                +1
-                +2.5
-                +"hello"
-                +true
+                add(1)
+                add(2.5)
+                add("hello")
+                add(true)
             }
             
             assertEquals(4, array.size)
@@ -68,9 +68,9 @@ class LLSDKotlinTest {
                     }
                 }
                 "scores" to llsdArray {
-                    +95
-                    +87
-                    +92
+                    add(95)
+                    add(87)
+                    add(92)
                 }
                 "metadata" to llsdMap {
                     "created" to Instant.now()
@@ -316,8 +316,8 @@ class LLSDKotlinTest {
             val data = llsdMap {
                 "simple" to "value"
                 "array" to llsdArray {
-                    +1
-                    +2
+                    add(1)
+                    add(2)
                 }
             }
             
