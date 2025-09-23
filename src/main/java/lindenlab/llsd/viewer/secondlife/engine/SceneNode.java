@@ -10,6 +10,7 @@ package lindenlab.llsd.viewer.secondlife.engine;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.UUID;
 
 /**
  * Basic scene graph node for Second Life 3D engine.

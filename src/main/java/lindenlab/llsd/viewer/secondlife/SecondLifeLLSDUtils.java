@@ -15,6 +15,7 @@ import lindenlab.llsd.viewer.secondlife.assets.*;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 /**
  * Second Life specific LLSD utilities and extensions.

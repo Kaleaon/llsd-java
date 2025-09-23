@@ -14,6 +14,7 @@ import lindenlab.llsd.LLSDException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.*;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -210,7 +211,9 @@ public final class LLSDViewerUtils {
             // Undefined template matches anything
             if (testObj != null) {
                 if (testObj instanceof Map) {
-                    result.putAll((Map<String, Object>) testObj);
+                    @SuppressWarnings("unchecked")
+                    Map<String, Object> testMap = (Map<String, Object>) testObj;
+                    result.putAll(testMap);
                 } else {
                     // For non-map types, we can't directly merge, so return true
                     return true;
@@ -222,7 +225,9 @@ public final class LLSDViewerUtils {
         if (testObj == null) {
             // Use template default
             if (templateObj instanceof Map) {
-                result.putAll((Map<String, Object>) templateObj);
+                @SuppressWarnings("unchecked")
+                Map<String, Object> templateMap = (Map<String, Object>) templateObj;
+                result.putAll(templateMap);
             }
             return true;
         }
@@ -233,7 +238,9 @@ public final class LLSDViewerUtils {
         }
         
         if (testObj instanceof Map && templateObj instanceof Map) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> testMap = (Map<String, Object>) testObj;
+            @SuppressWarnings("unchecked")
             Map<String, Object> templateMap = (Map<String, Object>) templateObj;
             
             for (Map.Entry<String, Object> templateEntry : templateMap.entrySet()) {
@@ -280,7 +287,9 @@ public final class LLSDViewerUtils {
             }
             return true;
         } else if (testObj instanceof List && templateObj instanceof List) {
+            @SuppressWarnings("unchecked")
             List<Object> testArray = (List<Object>) testObj;
+            @SuppressWarnings("unchecked")
             List<Object> templateArray = (List<Object>) templateObj;
             
             if (useWildcard && templateArray.size() == 1) {
@@ -544,6 +553,7 @@ public final class LLSDViewerUtils {
         if (value == null) return null;
         
         if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> originalMap = (Map<String, Object>) value;
             Map<String, Object> clonedMap = new HashMap<>();
             
@@ -566,6 +576,7 @@ public final class LLSDViewerUtils {
             }
             return clonedMap;
         } else if (value instanceof List) {
+            @SuppressWarnings("unchecked")
             List<Object> originalList = (List<Object>) value;
             List<Object> clonedList = new ArrayList<>();
             
@@ -603,6 +614,7 @@ public final class LLSDViewerUtils {
         if (value == null) return null;
         
         if (value instanceof Map) {
+            @SuppressWarnings("unchecked")
             Map<String, Object> originalMap = (Map<String, Object>) value;
             Map<String, Object> copiedMap = new HashMap<>();
             
@@ -625,7 +637,9 @@ public final class LLSDViewerUtils {
             }
             return copiedMap;
         } else if (value instanceof List) {
-            return new ArrayList<>((List<Object>) value);
+            @SuppressWarnings("unchecked")
+            List<Object> originalList = (List<Object>) value;
+            return new ArrayList<>(originalList);
         } else {
             return value;
         }
