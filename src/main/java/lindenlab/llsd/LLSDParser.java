@@ -151,8 +151,8 @@ public class LLSDParser {
         }
 
         try {
-            // XXX: Don't just assume the default parser is okay for SSLD, check
-            value = new Integer(elementContents);
+            // Parse integer value using modern method
+            value = Integer.valueOf(elementContents);
         } catch(NumberFormatException e) {
             throw new LLSDException("Unable to parse LLSD integer value, received \""
                 + elementContents + "\".", e);
@@ -286,8 +286,8 @@ public class LLSDParser {
         }
 
         try {
-            // XXX: Don't just assume the default parser is okay for SSLD, check
-            value = new Double(elementContents);
+            // Parse double value using modern method
+            value = Double.valueOf(elementContents);
         } catch(NumberFormatException e) {
             throw new LLSDException("Unable to parse LLSD real value, received \""
                 + elementContents + "\".", e);

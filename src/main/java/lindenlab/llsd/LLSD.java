@@ -206,6 +206,7 @@ public class LLSD {
         assert null != toSerialise;
 
         if (toSerialise instanceof Map) {
+            @SuppressWarnings("unchecked")
             final Map<String, Object> serialiseMap = (Map<String, Object>)toSerialise;
 
             writer.write("<map>\n");
@@ -217,8 +218,10 @@ public class LLSD {
             }
             writer.write("</map>\n");
         } else if (toSerialise instanceof List) {
+            @SuppressWarnings("unchecked")
+            final List<Object> serialiseList = (List<Object>)toSerialise;
             writer.write("<array>\n");
-            for (Object current: (List<Object>)toSerialise) {
+            for (Object current: serialiseList) {
                 writer.write("\t");
                 serialiseElement(writer, current);
             }
