@@ -137,20 +137,47 @@ class LLSDParserTest {
         }
 
         @Test
-        @DisplayName("Should parse array values correctly")
-        void testParseArray() throws Exception {
-            String llsdDoc = "<?xml version=\"1.0\"?><llsd><array><integer>1</integer><integer>2</integer><integer>3</integer></array></llsd>";
+        @DisplayName("Should parse binary data correctly")
+        void testParseBinary() throws Exception {
+            String testData = "Hello World";
+            String base64Data = java.util.Base64.getEncoder().encodeToString(testData.getBytes(StandardCharsets.UTF_8));
+            String llsdDoc = "<?xml version=\"1.0\"?><llsd><binary>" + base64Data + "</binary></llsd>";
+            
             try (InputStream inputStream = new ByteArrayInputStream(llsdDoc.getBytes(StandardCharsets.UTF_8))) {
                 LLSDParser parser = new LLSDParser();
                 LLSD result = parser.parse(inputStream);
                 
-                assertTrue(result.getContent() instanceof List, "Content should be List");
-                @SuppressWarnings("unchecked")
-                List<Object> list = (List<Object>) result.getContent();
-                assertEquals(3, list.size(), "Array should have 3 elements");
-                assertEquals(1, list.get(0), "First element should be 1");
-                assertEquals(2, list.get(1), "Second element should be 2");
-                assertEquals(3, list.get(2), "Third element should be 3");
+                assertTrue(result.getContent() instanceof byte[], "Content should be byte array");
+                byte[] resultData = (byte[]) result.getContent();
+                String resultString = new String(resultData, StandardCharsets.UTF_8);
+                assertEquals(testData, resultString, "Binary data should match original");
+            }
+        }
+
+        @Test
+        @DisplayName("Should parse empty binary data")
+        void testParseEmptyBinary() throws Exception {
+            String llsdDoc = "<?xml version=\"1.0\"?><llsd><binary></binary></llsd>";
+            try (InputStream inputStream = new ByteArrayInputStream(llsdDoc.getBytes(StandardCharsets.UTF_8))) {
+                LLSDParser parser = new LLSDParser();
+                LLSD result = parser.parse(inputStream);
+                
+                assertTrue(result.getContent() instanceof byte[], "Content should be byte array");
+                byte[] resultData = (byte[]) result.getContent();
+                assertEquals(0, resultData.length, "Empty binary should have zero length");
+            }
+        }
+
+        @Test
+        @DisplayName("Should handle undefined binary data")
+        void testParseUndefinedBinary() throws Exception {
+            String llsdDoc = "<?xml version=\"1.0\"?><llsd><binary><undef/></binary></llsd>";
+            try (InputStream inputStream = new ByteArrayInputStream(llsdDoc.getBytes(StandardCharsets.UTF_8))) {
+                LLSDParser parser = new LLSDParser();
+                LLSD result = parser.parse(inputStream);
+                
+                assertTrue(result.getContent() instanceof LLSDUndefined, "Content should be LLSDUndefined");
+                assertEquals(LLSDUndefined.BINARY, result.getContent(), "Should be BINARY undefined type");
             }
         }
     }

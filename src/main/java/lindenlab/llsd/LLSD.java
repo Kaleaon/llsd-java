@@ -13,6 +13,7 @@ import java.net.URI;
 import java.text.DateFormat;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
+import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -279,6 +280,11 @@ public class LLSD {
         } else if (toSerialise instanceof URI) {
             writer.write("<uri>"
                 + encodeXML(toSerialise.toString()) + "</uri>");
+        } else if (toSerialise instanceof byte[]) {
+            // Handle binary data as base64 encoded
+            byte[] binaryData = (byte[]) toSerialise;
+            String base64Data = Base64.getEncoder().encodeToString(binaryData);
+            writer.write("<binary>" + base64Data + "</binary>\n");
         } else if (toSerialise instanceof LLSDUndefined) {
             switch((LLSDUndefined)toSerialise) {
             case BINARY:

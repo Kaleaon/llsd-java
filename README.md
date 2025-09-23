@@ -7,12 +7,14 @@ The library has been updated to use modern Java standards and best practices, ta
 
 ## Features
 
-- Full support for all LLSD data types (boolean, integer, real, string, date, URI, UUID, array, map)
-- Modern Java patterns and practices
-- Comprehensive unit test coverage
-- Thread-safe parsing
-- Proper exception handling and resource management
-- Updated to Java 17+ with modern tooling
+- **Full LLSD XML Support**: Complete support for all LLSD data types (boolean, integer, real, string, date, URI, UUID, array, map)
+- **Binary Data Support**: Handles binary data with proper base64 encoding/decoding
+- **JSON LLSD Format**: Native support for JSON-formatted LLSD with proper type encoding
+- **Modern Java Patterns**: Uses Java 17+ features and modern best practices
+- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality
+- **Thread-Safe Parsing**: Proper exception handling and resource management
+- **Utility Functions**: Helper methods for navigating, validating, and manipulating LLSD data
+- **Multiple Serialization Formats**: Support for XML and JSON output formats
 
 ## Requirements
 
@@ -42,6 +44,8 @@ mvn package
 ## Usage
 
 ### Parsing LLSD Documents
+
+#### XML Format (Traditional)
 
 ```java
 import lindenlab.llsd.LLSD;
@@ -80,7 +84,53 @@ try {
 }
 ```
 
+#### JSON Format (Modern)
+
+```java
+import lindenlab.llsd.LLSDJsonParser;
+
+// Parse JSON-formatted LLSD
+try {
+    LLSDJsonParser jsonParser = new LLSDJsonParser();
+    
+    try (InputStream input = Files.newInputStream(Paths.get("document.json"))) {
+        LLSD document = jsonParser.parse(input);
+        // Process document same as XML format
+    }
+} catch (Exception e) {
+    System.err.println("Error parsing JSON LLSD: " + e.getMessage());
+}
+```
+
+### Working with Binary Data
+
+```java
+// Binary data is now supported with base64 encoding
+byte[] binaryData = "Hello World".getBytes(StandardCharsets.UTF_8);
+
+// Create LLSD with binary data
+LLSD binaryDocument = new LLSD(binaryData);
+
+// Serialize to XML (automatically base64 encoded)
+try (StringWriter writer = new StringWriter()) {
+    binaryDocument.serialise(writer, "UTF-8");
+    String xml = writer.toString();
+    // Results in: <llsd><binary>SGVsbG8gV29ybGQ=</binary></llsd>
+}
+
+// Parse binary data from XML
+LLSDParser parser = new LLSDParser();
+try (InputStream input = new ByteArrayInputStream(xml.getBytes())) {
+    LLSD parsed = parser.parse(input);
+    byte[] recoveredData = (byte[]) parsed.getContent();
+    String recoveredText = new String(recoveredData, StandardCharsets.UTF_8);
+    // recoveredText equals "Hello World"
+}
+```
+
 ### Serializing LLSD Documents
+
+#### XML Format
 
 ```java
 import java.io.StringWriter;
@@ -104,6 +154,59 @@ try (StringWriter writer = new StringWriter()) {
 }
 ```
 
+#### JSON Format
+
+```java
+import lindenlab.llsd.LLSDJsonSerializer;
+
+// Serialize to JSON format
+LLSD document = new LLSD(data);
+LLSDJsonSerializer jsonSerializer = new LLSDJsonSerializer();
+
+try (StringWriter writer = new StringWriter()) {
+    jsonSerializer.serialize(document, writer);
+    String jsonOutput = writer.toString();
+    System.out.println(jsonOutput);
+} catch (Exception e) {
+    System.err.println("Error serializing to JSON: " + e.getMessage());
+}
+```
+
+### Using LLSD Utilities
+
+```java
+import lindenlab.llsd.LLSDUtils;
+
+// Navigate nested LLSD structures safely
+LLSD document = parser.parse(inputStream);
+
+// Extract values with defaults
+String userName = LLSDUtils.getString(document.getContent(), "user.profile.name", "Anonymous");
+int userAge = LLSDUtils.getInteger(document.getContent(), "user.profile.age", 0);
+UUID userId = LLSDUtils.getUUID(document.getContent(), "user.id", UUID.randomUUID());
+
+// Validate required fields
+List<String> missing = LLSDUtils.validateRequiredFields(
+    document.getContent(), 
+    "user.name", "user.email", "user.id"
+);
+if (!missing.isEmpty()) {
+    System.err.println("Missing required fields: " + missing);
+}
+
+// Pretty print LLSD data
+String formatted = LLSDUtils.prettyPrint(document.getContent());
+System.out.println(formatted);
+
+// Merge LLSD maps
+Map<String, Object> defaults = createDefaults();
+Map<String, Object> userPrefs = loadUserPreferences();
+Map<String, Object> merged = LLSDUtils.mergeMaps(defaults, userPrefs);
+
+// Deep copy LLSD structures
+Object copy = LLSDUtils.deepCopy(document.getContent());
+```
+
 ### Supported Data Types
 
 The library supports all standard LLSD data types:
@@ -117,15 +220,40 @@ The library supports all standard LLSD data types:
 - **uuid**: Universally Unique Identifiers
 - **array**: Ordered lists of LLSD values
 - **map**: Key-value pairs with string keys
-- **undef**: Undefined values (represented as empty strings)
+- **binary**: Base64-encoded binary data
+- **undef**: Undefined values (represented as empty strings in XML, null in JSON)
+
+## JSON LLSD Format
+
+The library supports a JSON representation of LLSD data with special type encodings:
+
+```json
+{
+  "name": "John Doe",
+  "age": 30,
+  "id": {"i": "550e8400-e29b-41d4-a716-446655440000"},
+  "homepage": {"u": "https://example.com"},
+  "joined": {"d": "2024-01-01T00:00:00Z"},
+  "avatar": {"b": "SGVsbG8gV29ybGQ="},
+  "active": true,
+  "score": 98.5,
+  "items": [1, 2, 3],
+  "undefined_field": null
+}
+```
+
+Special JSON encodings:
+- `{"d": "ISO8601"}` - Date values
+- `{"u": "URI"}` - URI values  
+- `{"i": "UUID"}` - UUID values
+- `{"b": "base64"}` - Binary data
+- `null` - Undefined values
 
 ## Limitations
 
-**Binary data is not supported** in XML serialization. As noted by the original author:
+**Binary data in XML** uses base64 encoding as recommended by XML standards. The original library authors correctly noted the issues with mixing binary data and XML character encoding.
 
-> "binary" node type not implemented because it's a stupid idea that breaks how XML works. In specific, XML has a character set, binary data does not, and mixing the two is a recipe for disaster. Linden Labs should have used base 64 encode if they absolutely must, or attached binary content using a MIME multipart type.
-
-For binary data, consider base64 encoding it as a string before including in LLSD documents.
+For binary data, the library now properly handles base64 encoding/decoding automatically, making it safe and standards-compliant.
 
 ## Testing
 

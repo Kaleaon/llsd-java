@@ -20,6 +20,7 @@ import java.net.URI;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
+import java.util.Base64;
 
 /**
  * Parser for LLSD (Linden Lab Structured Data) documents.
@@ -224,12 +225,9 @@ public class LLSDParser {
 
         childNodes = node.getChildNodes();
 
-        // Handle compound types (array and map) and stupid decisions by Linden
-        // Labs (binary).
+        // Handle compound types (array and map)
         if (nodeName.equals("array")) {
             return parseArray(childNodes);
-        } else if (nodeName.equals("binary")) {
-            throw new LLSDException("\"binary\" node type not implemented because it's a stupid idea that breaks how XML works. In specific, XML has a character set, binary data does not, and mixing the two is a recipe for disaster. Linden Labs should have used base 64 encode if they absolutely must, or attached binary content using a MIME multipart type.");
         } else if (nodeName.equals("map")) {
             return parseMap(childNodes);
         }
@@ -249,6 +247,22 @@ public class LLSDParser {
                 break;
             default:
                 break;
+            }
+        }
+
+        // Handle binary after nodeText is built
+        if (nodeName.equals("binary")) {
+            if (isUndefined) {
+                return LLSDUndefined.BINARY;
+            }
+            String base64Content = nodeText.toString().trim();
+            if (base64Content.isEmpty()) {
+                return new byte[0]; // Empty binary data
+            }
+            try {
+                return Base64.getDecoder().decode(base64Content);
+            } catch (IllegalArgumentException e) {
+                throw new LLSDException("Invalid base64 binary data: " + base64Content, e);
             }
         }
 
