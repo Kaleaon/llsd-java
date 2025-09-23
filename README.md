@@ -5,6 +5,8 @@ This is a modernized Java implementation of [LLSD (Linden Lab Structured Data)](
 
 The library has been updated to use modern Java standards and best practices, targeting Java 17+ with comprehensive test coverage and improved documentation.
 
+**NEW:** This repository now includes Java conversions of LLSD functionality from the Second Life and Firestorm viewer C++ implementations, providing enhanced features and viewer-specific utilities.
+
 ## Features
 
 - **Full LLSD XML Support**: Complete support for all LLSD data types (boolean, integer, real, string, date, URI, UUID, array, map)
@@ -13,10 +15,19 @@ The library has been updated to use modern Java standards and best practices, ta
 - **Notation LLSD Format**: Compact text-based format (e.g., `s'string'`, `i42`, `[i1,i2,i3]`)
 - **Binary LLSD Format**: Efficient binary serialization format for high-performance applications
 - **Modern Java Patterns**: Uses Java 17+ features and modern best practices
-- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality (75 tests)
+- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality (90+ tests)
 - **Thread-Safe Parsing**: Proper exception handling and resource management
 - **Utility Functions**: Helper methods for navigating, validating, and manipulating LLSD data
 - **Multiple Serialization Formats**: Support for XML, JSON, Notation, and Binary output formats
+
+### NEW: Viewer Extensions
+
+- **Enhanced LLSD Utilities**: Advanced utilities converted from Second Life/Firestorm C++ code
+- **Type System Extensions**: Enhanced type detection and conversion from viewer implementations
+- **Serialization Framework**: Advanced parsing with limits, depth checking, and line-based reading
+- **Second Life Integration**: SL-specific data structures and protocols
+- **Firestorm Extensions**: Firestorm-specific features including RLV, radar, bridge communication
+- **Performance Optimizations**: Viewer-tested performance enhancements and caching
 
 ## Requirements
 
@@ -281,6 +292,145 @@ System.out.println(formatted);
 Map<String, Object> defaults = createDefaults();
 Map<String, Object> userPrefs = loadUserPreferences();
 Map<String, Object> merged = LLSDUtils.mergeMaps(defaults, userPrefs);
+```
+
+## NEW: Viewer-Specific Extensions
+
+### Enhanced LLSD Utilities (from C++ viewer code)
+
+```java
+import lindenlab.llsd.viewer.LLSDViewerUtils;
+
+// Advanced type conversions
+long unsignedValue = LLSDViewerUtils.toU32(llsdData);
+byte[] binaryData = LLSDViewerUtils.binaryFromString(base64String);
+
+// Template-based validation (from viewer protocols)
+Map<String, Object> template = createProtocolTemplate();
+Map<String, Object> result = new HashMap<>();
+boolean valid = LLSDViewerUtils.compareWithTemplate(incomingData, template, result);
+
+// Deep equality with floating-point precision control
+boolean equal = LLSDViewerUtils.llsdEquals(data1, data2, 10); // 10-bit precision
+
+// Structure matching for protocol validation
+String errors = LLSDViewerUtils.llsdMatches(prototype, data, "");
+if (!errors.isEmpty()) {
+    System.err.println("Protocol validation failed: " + errors);
+}
+
+// Deep cloning with filtering
+Map<String, Boolean> filter = Map.of("sensitive", false, "*", true);
+Object filtered = LLSDViewerUtils.llsdClone(data, filter);
+```
+
+### Enhanced Type System
+
+```java
+import lindenlab.llsd.viewer.LLSDViewerTypes;
+import lindenlab.llsd.viewer.LLSDViewerTypes.Type;
+
+// Advanced type detection
+Type detectedType = LLSDViewerTypes.TypeDetection.detectType(someObject);
+
+// Type compatibility checking
+boolean canConvert = LLSDViewerTypes.TypeDetection.canConvertTo(data, Type.STRING);
+
+// Type-safe builders
+Map<String, Object> complexMap = LLSDViewerTypes.Factory.map()
+    .put("name", "Agent")
+    .put("position", LLSDViewerTypes.Factory.array(128.5, 128.5, 23.0).build())
+    .put("active", true)
+    .build();
+```
+
+### Advanced Serialization Framework
+
+```java
+import lindenlab.llsd.viewer.LLSDViewerSerializer;
+
+// Enhanced parser with security limits
+LLSDViewerSerializer parser = new MyEnhancedParser();
+LLSD result = parser.parse(inputStream, 1024*1024, 32); // 1MB limit, 32 depth limit
+
+// Line-based parsing for better XML handling
+LLSD xmlResult = parser.parseLines(xmlInputStream);
+
+// Reusable parser instances
+parser.reset(); // Reset for next parse operation
+```
+
+### Second Life Integration
+
+```java
+import lindenlab.llsd.viewer.secondlife.SecondLifeLLSDUtils;
+
+// Create SL-specific data structures
+Map<String, Object> agentData = SecondLifeLLSDUtils.createAgentData(
+    agentId, 
+    new double[]{128.0, 128.0, 23.0}, // position
+    new double[]{0.0, 0.0, 0.0, 1.0}, // rotation
+    new double[]{0.0, 0.0, 0.0}       // velocity
+);
+
+// Handle chat messages
+Map<String, Object> chatMsg = SecondLifeLLSDUtils.createChatMessage(
+    fromId, "Avatar Name", "Hello world!", 0, 0, position
+);
+
+// Validate SL message protocols
+SecondLifeLLSDUtils.SLValidationRules rules = new SecondLifeLLSDUtils.SLValidationRules()
+    .requireMap()
+    .requireField("AgentID", UUID.class)
+    .requireField("Message", String.class);
+
+SecondLifeLLSDUtils.ValidationResult validation = 
+    SecondLifeLLSDUtils.validateSLStructure(messageData, rules);
+
+if (!validation.isValid()) {
+    System.err.println("SL protocol validation failed: " + validation.getErrors());
+}
+```
+
+### Firestorm Extensions
+
+```java
+import lindenlab.llsd.viewer.firestorm.FirestormLLSDUtils;
+import lindenlab.llsd.viewer.firestorm.FirestormLLSDUtils.RLVCommand;
+
+// RLV (Restrained Life Viewer) support
+RLVCommand rlvCmd = new RLVCommand("@sit", "ground", "=force", sourceId);
+Map<String, Object> rlvData = rlvCmd.toLLSD();
+
+// Enhanced radar functionality
+Map<String, Object> radarData = FirestormLLSDUtils.createRadarData(
+    agentId, displayName, userName, position, distance, isTyping, attachments
+);
+
+// Bridge communication protocol
+Map<String, Object> bridgeMsg = FirestormLLSDUtils.createBridgeMessage(
+    "get_avatar_data", parameters, requestId, priority
+);
+
+// Performance monitoring
+Map<String, Object> perfStats = FirestormLLSDUtils.createPerformanceStats(
+    fps, bandwidth, memoryUsage, renderTime, scriptTime, triangles
+);
+
+// Firestorm-specific validation
+FirestormLLSDUtils.FSValidationRules fsRules = new FirestormLLSDUtils.FSValidationRules()
+    .requireMap()
+    .requireFSVersion("6.0.0")
+    .requireRLV()
+    .requireField("ViewerVersion", String.class);
+
+FirestormLLSDUtils.FSValidationResult fsResult = 
+    FirestormLLSDUtils.validateFSStructure(data, fsRules);
+
+// Thread-safe caching for performance
+FirestormLLSDUtils.FSLLSDCache cache = new FirestormLLSDUtils.FSLLSDCache(300000); // 5min
+cache.put("key", expensiveData);
+Object cached = cache.get("key");
 
 // Deep copy LLSD structures
 Object copy = LLSDUtils.deepCopy(document.getContent());
