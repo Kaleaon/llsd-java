@@ -10,11 +10,13 @@ The library has been updated to use modern Java standards and best practices, ta
 - **Full LLSD XML Support**: Complete support for all LLSD data types (boolean, integer, real, string, date, URI, UUID, array, map)
 - **Binary Data Support**: Handles binary data with proper base64 encoding/decoding
 - **JSON LLSD Format**: Native support for JSON-formatted LLSD with proper type encoding
+- **Notation LLSD Format**: Compact text-based format (e.g., `s'string'`, `i42`, `[i1,i2,i3]`)
+- **Binary LLSD Format**: Efficient binary serialization format for high-performance applications
 - **Modern Java Patterns**: Uses Java 17+ features and modern best practices
-- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality
+- **Comprehensive Test Coverage**: Extensive unit tests covering all functionality (75 tests)
 - **Thread-Safe Parsing**: Proper exception handling and resource management
 - **Utility Functions**: Helper methods for navigating, validating, and manipulating LLSD data
-- **Multiple Serialization Formats**: Support for XML and JSON output formats
+- **Multiple Serialization Formats**: Support for XML, JSON, Notation, and Binary output formats
 
 ## Requirements
 
@@ -42,6 +44,8 @@ mvn package
 ```
 
 ## Usage
+
+### Parsing LLSD Documents
 
 ### Parsing LLSD Documents
 
@@ -102,6 +106,42 @@ try {
 }
 ```
 
+#### Notation Format (Compact)
+
+```java
+import lindenlab.llsd.LLSDNotationParser;
+
+// Parse notation-formatted LLSD
+try {
+    LLSDNotationParser notationParser = new LLSDNotationParser();
+    
+    try (InputStream input = Files.newInputStream(Paths.get("document.llsd"))) {
+        LLSD document = notationParser.parse(input);
+        // Process document same as other formats
+    }
+} catch (Exception e) {
+    System.err.println("Error parsing Notation LLSD: " + e.getMessage());
+}
+```
+
+#### Binary Format (High Performance)
+
+```java
+import lindenlab.llsd.LLSDBinaryParser;
+
+// Parse binary-formatted LLSD
+try {
+    LLSDBinaryParser binaryParser = new LLSDBinaryParser();
+    
+    try (InputStream input = Files.newInputStream(Paths.get("document.llsd-binary"))) {
+        LLSD document = binaryParser.parse(input);
+        // Process document same as other formats
+    }
+} catch (Exception e) {
+    System.err.println("Error parsing Binary LLSD: " + e.getMessage());
+}
+```
+
 ### Working with Binary Data
 
 ```java
@@ -127,6 +167,8 @@ try (InputStream input = new ByteArrayInputStream(xml.getBytes())) {
     // recoveredText equals "Hello World"
 }
 ```
+
+### Serializing LLSD Documents
 
 ### Serializing LLSD Documents
 
@@ -169,6 +211,43 @@ try (StringWriter writer = new StringWriter()) {
     System.out.println(jsonOutput);
 } catch (Exception e) {
     System.err.println("Error serializing to JSON: " + e.getMessage());
+}
+```
+
+#### Notation Format
+
+```java
+import lindenlab.llsd.LLSDNotationSerializer;
+
+// Serialize to compact notation format
+LLSD document = new LLSD(data);
+LLSDNotationSerializer notationSerializer = new LLSDNotationSerializer();
+
+try (StringWriter writer = new StringWriter()) {
+    notationSerializer.serialize(document, writer);
+    String notationOutput = writer.toString();
+    System.out.println(notationOutput);
+    // Output: {name:s'Test Object',id:i12345,active:1}
+} catch (Exception e) {
+    System.err.println("Error serializing to Notation: " + e.getMessage());
+}
+```
+
+#### Binary Format
+
+```java
+import lindenlab.llsd.LLSDBinarySerializer;
+
+// Serialize to efficient binary format
+LLSD document = new LLSD(data);
+LLSDBinarySerializer binarySerializer = new LLSDBinarySerializer();
+
+try (ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+    binarySerializer.serialize(document, output, true); // with header
+    byte[] binaryData = output.toByteArray();
+    System.out.println("Binary LLSD size: " + binaryData.length + " bytes");
+} catch (Exception e) {
+    System.err.println("Error serializing to Binary: " + e.getMessage());
 }
 ```
 
@@ -223,10 +302,15 @@ The library supports all standard LLSD data types:
 - **binary**: Base64-encoded binary data
 - **undef**: Undefined values (represented as empty strings in XML, null in JSON)
 
-## JSON LLSD Format
+## LLSD Format Support
 
-The library supports a JSON representation of LLSD data with special type encodings:
+### XML LLSD (Traditional)
+Standard XML representation as specified in the original LLSD documentation.
+- **Use case**: Legacy compatibility, human-readable
+- **File extension**: `.xml`
 
+### JSON LLSD (Modern)
+JSON representation with special type encodings for LLSD-specific types:
 ```json
 {
   "name": "John Doe",
@@ -248,6 +332,37 @@ Special JSON encodings:
 - `{"i": "UUID"}` - UUID values
 - `{"b": "base64"}` - Binary data
 - `null` - Undefined values
+- **Use case**: Web APIs, modern applications, JavaScript compatibility
+- **File extension**: `.json`
+
+### Notation LLSD (Compact)
+Compact text-based format inspired by programming language literals:
+```
+{name:s'John Doe',age:i30,active:1,score:r98.5,items:[i1,i2,i3]}
+```
+
+Notation syntax:
+- `!` - undefined
+- `1` / `0` - boolean true/false  
+- `i42` - integer
+- `r3.14159` - real number
+- `s'text'` - string (single or double quotes)
+- `u550e8400-...` - UUID
+- `d2024-01-01T00:00:00Z` - date
+- `lhttp://example.com` - URI
+- `b64"SGVsbG8="` - binary (base64)
+- `[...]` - arrays
+- `{key:value,...}` - maps
+- **Use case**: Configuration files, compact data exchange, debugging
+- **File extension**: `.llsd`
+
+### Binary LLSD (High Performance)
+Efficient binary encoding with specific byte markers:
+- **Header**: `<?llsd/binary?>`
+- **Compact encoding**: Uses single-byte type markers + binary data
+- **Network byte order**: Big-endian for cross-platform compatibility
+- **Use case**: High-performance applications, network protocols, large datasets
+- **File extension**: `.llsd-binary`
 
 ## Limitations
 
