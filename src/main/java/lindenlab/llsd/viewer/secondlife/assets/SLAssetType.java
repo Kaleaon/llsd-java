@@ -9,12 +9,16 @@
 package lindenlab.llsd.viewer.secondlife.assets;
 
 /**
- * Second Life asset type constants and utilities.
- * 
- * <p>These constants define the standard asset types used throughout the
- * Second Life ecosystem, matching the official viewer implementation.</p>
- * 
- * @since 1.0
+ * A utility class that defines constants and helper methods related to Second
+ * Life asset types.
+ * <p>
+ * This class provides integer constants for all standard asset types found in
+ * the Second Life viewer, from textures and sounds to inventory items and mesh.
+ * It also includes utility methods for classifying asset types (e.g., checking
+ * if a type is a texture) and for getting human-readable names and MIME types.
+ * <p>
+ * As a utility class containing only constants and static methods, it is final
+ * and cannot be instantiated.
  */
 public final class SLAssetType {
     
@@ -59,10 +63,11 @@ public final class SLAssetType {
     }
     
     /**
-     * Check if an asset type is a texture type.
-     * 
-     * @param assetType the asset type to check
-     * @return true if the asset type represents a texture
+     * Checks if a given asset type code corresponds to a texture type.
+     *
+     * @param assetType The integer asset type code to check.
+     * @return {@code true} if the asset type is a texture (e.g., TEXTURE,
+     *         IMAGE_JPEG), {@code false} otherwise.
      */
     public static boolean isTextureType(int assetType) {
         return assetType == TEXTURE || 
@@ -73,10 +78,11 @@ public final class SLAssetType {
     }
     
     /**
-     * Check if an asset type is a sound type.
-     * 
-     * @param assetType the asset type to check
-     * @return true if the asset type represents audio
+     * Checks if a given asset type code corresponds to a sound type.
+     *
+     * @param assetType The integer asset type code to check.
+     * @return {@code true} if the asset type is a sound (e.g., SOUND, SOUND_WAV),
+     *         {@code false} otherwise.
      */
     public static boolean isSoundType(int assetType) {
         return assetType == SOUND || 
@@ -85,20 +91,22 @@ public final class SLAssetType {
     }
     
     /**
-     * Check if an asset type is a streaming type.
-     * 
-     * @param assetType the asset type to check
-     * @return true if the asset type represents streaming data
+     * Checks if a given asset type code corresponds to a streaming type.
+     *
+     * @param assetType The integer asset type code to check.
+     * @return {@code true} if the asset is a stream type (e.g., AUDIO_STREAM,
+     *         TEXTURE_STREAM), {@code false} otherwise.
      */
     public static boolean isStreamType(int assetType) {
         return assetType >= AUDIO_STREAM && assetType <= MODEL_STREAM;
     }
     
     /**
-     * Get a human-readable name for an asset type.
-     * 
-     * @param assetType the asset type
-     * @return the name of the asset type
+     * Gets the human-readable name for a given asset type code.
+     *
+     * @param assetType The integer asset type code.
+     * @return The corresponding name (e.g., "Texture", "Sound"), or a default
+     *         string if the type is unknown.
      */
     public static String getTypeName(int assetType) {
         switch (assetType) {
@@ -139,10 +147,11 @@ public final class SLAssetType {
     }
     
     /**
-     * Get the MIME type for an asset type.
-     * 
-     * @param assetType the asset type
-     * @return the MIME type for the asset
+     * Gets the most appropriate MIME type for a given asset type code.
+     *
+     * @param assetType The integer asset type code.
+     * @return The corresponding MIME type string (e.g., "image/x-j2c", "audio/wav").
+     *         Returns "application/octet-stream" for unknown or generic types.
      */
     public static String getMimeType(int assetType) {
         switch (assetType) {

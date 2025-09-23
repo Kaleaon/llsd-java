@@ -20,52 +20,50 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Parser for LLSD documents in JSON format.
- * 
- * <p>This parser converts JSON-formatted LLSD documents into Java objects.
- * It supports all standard LLSD data types with proper JSON representation.</p>
- * 
- * <p>JSON LLSD format uses specific conventions:
+ * A parser for LLSD (Linden Lab Structured Data) in its JSON representation.
+ * <p>
+ * This class handles the conversion of a JSON-formatted LLSD document from an
+ * {@link InputStream} into a standard Java object structure, wrapped within an
+ * {@link LLSD} object. It includes a basic, self-contained JSON tokenizer and
+ * parser designed specifically for the conventions of LLSD.
+ * <p>
+ * LLSD has special representations for certain data types within JSON:
  * <ul>
- * <li>Dates are represented as ISO 8601 strings with "d" prefix: {"d":"2024-01-01T00:00:00Z"}</li>
- * <li>URIs are represented with "u" prefix: {"u":"http://example.com"}</li>
- * <li>UUIDs are represented with "i" prefix: {"i":"550e8400-e29b-41d4-a716-446655440000"}</li>
- * <li>Binary data is base64 encoded with "b" prefix: {"b":"SGVsbG8gV29ybGQ="}</li>
- * <li>Undefined values are represented as null</li>
- * </ul></p>
- * 
- * <p>Example usage:</p>
- * <pre>{@code
- * LLSDJsonParser parser = new LLSDJsonParser();
- * try (InputStream input = Files.newInputStream(Paths.get("document.json"))) {
- *     LLSD document = parser.parse(input);
- *     Object content = document.getContent();
- *     // Process the content...
- * }
- * }</pre>
- * 
- * @since 1.0
+ *   <li><b>Undefined:</b> {@code null}</li>
+ *   <li><b>Date:</b> A map with a single "d" key, e.g., {@code {"d": "2024-01-01T00:00:00Z"}}</li>
+ *   <li><b>URI:</b> A map with a single "u" key, e.g., {@code {"u": "http://example.com"}}</li>
+ *   <li><b>UUID:</b> A map with a single "i" key, e.g., {@code {"i": "550e8400-e29b-41d4-a716-446655440000"}}</li>
+ *   <li><b>Binary:</b> A map with a single "b" key containing base64-encoded data, e.g., {@code {"b": "SGVsbG8="}}</li>
+ * </ul>
+ * Standard JSON types like strings, numbers, booleans, arrays, and objects are
+ * mapped directly to their corresponding Java types.
+ *
  * @see LLSD
- * @see LLSDParser
+ * @see LLSDJsonSerializer
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#JSON_Serialization">LLSD JSON Specification</a>
  */
 public class LLSDJsonParser {
     private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
     private final Pattern uuidPattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", Pattern.CASE_INSENSITIVE);
 
     /**
-     * Constructs a new LLSD JSON parser.
+     * Initializes a new instance of the {@code LLSDJsonParser}.
      */
     public LLSDJsonParser() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Parses an LLSD document from the given JSON input stream.
+     * Parses an LLSD document from a JSON input stream.
+     * <p>
+     * This method reads the entire stream, parses it as JSON, and then converts
+     * the resulting structure into the appropriate LLSD object representation.
      *
-     * @param jsonInput the JSON input stream to read and parse as LLSD.
-     * @return the parsed LLSD document
-     * @throws IOException if there was a problem reading from the input stream.
-     * @throws LLSDException if the document is valid JSON, but invalid LLSD.
+     * @param jsonInput The input stream containing the JSON-formatted LLSD data.
+     * @return An {@link LLSD} object representing the parsed data.
+     * @throws IOException   if an I/O error occurs while reading from the stream.
+     * @throws LLSDException if the input is not valid JSON or does not conform
+     *                       to LLSD's JSON conventions (e.g., invalid date format).
      */
     public LLSD parse(final InputStream jsonInput) throws IOException, LLSDException {
         // Read entire stream into string for simpler parsing
@@ -86,7 +84,12 @@ public class LLSDJsonParser {
     }
 
     /**
-     * Simple tokenizer for JSON parsing.
+     * A simple, internal tokenizer for breaking a JSON string into a sequence of tokens.
+     * <p>
+     * This tokenizer is not a general-purpose JSON parser but is sufficient for
+     * the needs of LLSD. It handles basic JSON syntax elements like strings
+     * (with escapes), numbers, literals (true, false, null), and structural
+     * characters ({, }, [, ], :, ,).
      */
     private static class JsonTokenizer {
         private final String json;
@@ -242,9 +245,15 @@ public class LLSDJsonParser {
     }
 
     /**
-     * Simple JSON parser implementation for LLSD purposes.
-     * Note: This is a basic implementation. For production use, consider using a 
-     * proper JSON library like Jackson or Gson.
+     * Parses a single JSON value from the token stream.
+     * <p>
+     * This is the entry point for the recursive descent parser. It looks at the
+     * next token to decide whether to parse an object, array, string, number,
+     * or literal.
+     *
+     * @param tokenizer The tokenizer providing the JSON tokens.
+     * @return A Java object representing the parsed JSON value (e.g., Map, List, String).
+     * @throws LLSDException if the token stream is invalid.
      */
     private Object parseJsonValue(JsonTokenizer tokenizer) throws LLSDException {
         char ch = tokenizer.peek();
@@ -328,7 +337,16 @@ public class LLSDJsonParser {
     }
 
     /**
-     * Converts a parsed JSON object to LLSD format by interpreting special prefixed objects.
+     * Recursively converts a parsed JSON object structure into an LLSD object structure.
+     * <p>
+     * This method traverses the parsed JSON tree (composed of Maps, Lists, and
+     * primitive wrappers) and transforms it into an LLSD-compatible structure.
+     * It specifically looks for the special map-based encodings for types like
+     * Date, URI, and UUID, and converts them accordingly.
+     *
+     * @param jsonObj The input object parsed from JSON.
+     * @return An object compatible with LLSD data types.
+     * @throws LLSDException if a special LLSD type has an invalid format.
      */
     private Object convertJsonToLlsd(Object jsonObj) throws LLSDException {
         if (jsonObj == null) {

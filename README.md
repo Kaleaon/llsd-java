@@ -38,9 +38,17 @@ The library has been updated to use modern Java standards and best practices, ta
 - **Firestorm Extensions**: Firestorm-specific features including RLV, radar, bridge communication
 - **Performance Optimizations**: Viewer-tested performance enhancements and caching
 
+### Modern Kotlin Support
+
+- **Kotlin DSL**: A type-safe and idiomatic DSL for creating complex LLSD structures.
+- **Extension Functions**: A rich set of extension functions for easy and safe type conversion.
+- **Coroutines Support**: Asynchronous operations are supported for non-blocking parsing and serialization.
+- **Full Interoperability**: Seamless conversion between Java and Kotlin LLSD representations.
+
 ## Requirements
 
 - Java 17 or later
+- Kotlin 1.8+
 - Maven 3.6+
 
 ## Installation
@@ -301,6 +309,38 @@ System.out.println(formatted);
 Map<String, Object> defaults = createDefaults();
 Map<String, Object> userPrefs = loadUserPreferences();
 Map<String, Object> merged = LLSDUtils.mergeMaps(defaults, userPrefs);
+```
+
+### Using the Kotlin DSL
+
+The library includes a powerful Kotlin DSL for creating LLSD data in a more readable and type-safe way.
+
+```kotlin
+import lindenlab.llsd.kotlin.*
+
+// Create a complex LLSD map using the DSL
+val llsdMap = llsdMap {
+    "name" to "John Doe"
+    "age" to 30
+    "active" to true
+    "inventory".array {
+        map {
+            "item" to "Sword"
+            "damage" to 15
+        }
+        map {
+            "item" to "Shield"
+            "defense" to 10
+        }
+    }
+}
+
+// Convert to Java LLSD if needed
+val javaLLSD = llsdMap.toJavaLLSD()
+
+// Safely access nested data
+val firstItemName = llsdMap.path("inventory", 0, "item").asString("default")
+println("First item: $firstItemName") // Output: First item: Sword
 ```
 
 ## NEW: Second Life Asset Processing
@@ -691,11 +731,15 @@ Test results include:
 - Edge cases (NaN, empty values, etc.)
 - Resource management
 
+## Documentation
+
+This repository now features complete Javadoc and KDoc documentation for all public classes, methods, and functions. This comprehensive documentation serves as a detailed reference for understanding the API and the inner workings of the library.
+
 ## Contributing
 
 Contributions are welcome! Please ensure:
 - All tests pass (`mvn test`)
-- Code follows modern Java practices
+- Code follows modern Java and Kotlin practices
 - New features include appropriate test coverage
 - Documentation is updated as needed
 

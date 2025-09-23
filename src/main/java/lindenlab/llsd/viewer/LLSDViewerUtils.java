@@ -18,24 +18,20 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Enhanced LLSD utilities converted from Second Life and Firestorm viewer C++ implementation.
- * 
- * <p>This class provides additional utility functions beyond the basic LLSD library,
- * including specialized conversion functions, template matching, deep comparison,
- * and enhanced data manipulation methods found in the viewer code.</p>
- * 
- * <p>Key features from the C++ implementation:</p>
+ * A utility class providing enhanced methods for working with LLSD data, based on
+ * the C++ implementation from the Second Life viewer (llsdutil.h).
+ * <p>
+ * This class offers advanced functionality beyond basic LLSD manipulation, including:
  * <ul>
- * <li>Template matching and validation</li>
- * <li>Deep equality comparisons</li>
- * <li>Enhanced data type conversions</li>
- * <li>Binary/string conversion utilities</li>
- * <li>Network address handling</li>
- * <li>Array and map construction helpers</li>
+ *   <li>Specialized conversions for viewer-specific types like unsigned integers and IP addresses.</li>
+ *   <li>Template-based filtering and comparison of LLSD structures.</li>
+ *   <li>Deep equality checks with floating-point precision control.</li>
+ *   <li>Structure validation against a prototype.</li>
+ *   <li>Deep and shallow cloning of LLSD objects.</li>
  * </ul>
- * 
- * @since 1.0
- * @see LLSD
+ * This class is final and cannot be instantiated.
+ *
+ * @see <a href="https://github.com/secondlife/viewer/blob/main/indra/llcommon/llsdutil.h">llsdutil.h</a>
  */
 public final class LLSDViewerUtils {
     
@@ -44,11 +40,13 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Convert a 32-bit unsigned integer to LLSD.
-     * Equivalent to C++ ll_sd_from_U32()
-     * 
-     * @param value the unsigned integer value (as long to handle unsigned range)
-     * @return LLSD containing the value
+     * Creates an LLSD integer from a 32-bit unsigned integer value.
+     * <p>
+     * The input is a {@code long} to accommodate the full unsigned range.
+     *
+     * @param value The unsigned 32-bit integer value.
+     * @return An {@link Integer} object suitable for use in an LLSD structure.
+     * @throws IllegalArgumentException if the value is outside the U32 range.
      */
     public static Object fromU32(long value) {
         if (value < 0 || value > 0xFFFFFFFFL) {
@@ -58,11 +56,11 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Extract a 32-bit unsigned integer from LLSD.
-     * Equivalent to C++ ll_U32_from_sd()
-     * 
-     * @param sd the LLSD value
-     * @return the unsigned integer as long
+     * Extracts a 32-bit unsigned integer from an LLSD value.
+     *
+     * @param sd The LLSD object (should be an Integer or Long).
+     * @return The value as a {@code long} to hold the unsigned range.
+     * @throws IllegalArgumentException if the object cannot be converted.
      */
     public static long toU32(Object sd) {
         if (sd instanceof Integer) {
@@ -79,22 +77,24 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Convert a 64-bit unsigned integer to LLSD.
-     * Equivalent to C++ ll_sd_from_U64()
-     * 
-     * @param value the unsigned integer value
-     * @return LLSD containing the value
+     * Creates an LLSD long from a 64-bit unsigned integer value.
+     * <p>
+     * In Java, {@code long} is signed, so this method effectively just returns the
+     * value, relying on the caller to handle the unsigned interpretation if needed.
+     *
+     * @param value The 64-bit integer value.
+     * @return A {@link Long} object.
      */
     public static Object fromU64(long value) {
         return value;
     }
     
     /**
-     * Extract a 64-bit unsigned integer from LLSD.
-     * Equivalent to C++ ll_U64_from_sd()
-     * 
-     * @param sd the LLSD value
-     * @return the unsigned integer
+     * Extracts a 64-bit unsigned integer from an LLSD value.
+     *
+     * @param sd The LLSD object (should be an Integer or Long).
+     * @return The value as a {@code long}.
+     * @throws IllegalArgumentException if the object cannot be converted.
      */
     public static long toU64(Object sd) {
         if (sd instanceof Integer) {
@@ -106,22 +106,21 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Convert an IP address to LLSD.
-     * Equivalent to C++ ll_sd_from_ipaddr()
-     * 
-     * @param ipAddress IP address as 32-bit integer
-     * @return LLSD containing the IP address
+     * Creates an LLSD integer from a 32-bit integer representing an IP address.
+     *
+     * @param ipAddress The IP address encoded as an integer.
+     * @return An {@link Integer} object.
      */
     public static Object fromIPAddress(int ipAddress) {
         return ipAddress;
     }
     
     /**
-     * Extract an IP address from LLSD.
-     * Equivalent to C++ ll_ipaddr_from_sd()
-     * 
-     * @param sd the LLSD value
-     * @return IP address as integer
+     * Extracts a 32-bit integer representing an IP address from an LLSD value.
+     *
+     * @param sd The LLSD object (should be an Integer).
+     * @return The IP address as an integer.
+     * @throws IllegalArgumentException if the object is not an Integer.
      */
     public static int toIPAddress(Object sd) {
         if (sd instanceof Integer) {
@@ -131,11 +130,11 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Convert binary data to a string representation.
-     * Equivalent to C++ ll_string_from_binary()
-     * 
-     * @param sd LLSD containing binary data
-     * @return string representation of binary data
+     * Converts an LLSD binary value into its Base64 string representation.
+     *
+     * @param sd The LLSD object (must be a byte array).
+     * @return A Base64-encoded string.
+     * @throws IllegalArgumentException if the object is not a byte array.
      */
     public static String stringFromBinary(Object sd) {
         if (sd instanceof byte[]) {
@@ -145,11 +144,14 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Convert a string to binary data.
-     * Equivalent to C++ ll_binary_from_string()
-     * 
-     * @param sd LLSD containing string data
-     * @return binary data as byte array
+     * Converts an LLSD string value into a byte array.
+     * <p>
+     * It first attempts to decode the string as Base64. If that fails, it
+     * falls back to converting the string using UTF-8 encoding.
+     *
+     * @param sd The LLSD object (must be a String).
+     * @return The resulting byte array.
+     * @throws IllegalArgumentException if the object is not a String.
      */
     public static byte[] binaryFromString(Object sd) {
         if (sd instanceof String) {
@@ -181,26 +183,34 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Compare an LLSD structure with a template and return filtered results.
-     * Equivalent to C++ compare_llsd_with_template()
-     * 
-     * @param testLLSD the LLSD to test
-     * @param templateLLSD the template to compare against
-     * @param resultLLSD the filtered result (modified in place)
-     * @return true if comparison succeeded
+     * Compares an LLSD data structure against a template, populating a result map.
+     * <p>
+     * This method checks if the {@code testLLSD} structure conforms to the types
+     * and structure of the {@code templateLLSD}. If a key from the template exists
+     * in the test data, the test data's value is used; otherwise, the template's
+     * default value is used.
+     *
+     * @param testLLSD     The LLSD data to be tested.
+     * @param templateLLSD The template structure to compare against.
+     * @param resultLLSD   A map that will be populated with the result of the comparison.
+     * @return {@code true} if the test data is compatible with the template,
+     *         {@code false} otherwise.
      */
     public static boolean compareWithTemplate(Object testLLSD, Object templateLLSD, Map<String, Object> resultLLSD) {
         return compareWithTemplateImpl(testLLSD, templateLLSD, resultLLSD, false);
     }
     
     /**
-     * Filter an LLSD structure with a template, supporting wildcards.
-     * Equivalent to C++ filter_llsd_with_template()
-     * 
-     * @param testLLSD the LLSD to filter
-     * @param templateLLSD the template to filter with
-     * @param resultLLSD the filtered result (modified in place)
-     * @return true if filtering succeeded
+     * Filters an LLSD data structure using a template, with support for wildcards.
+     * <p>
+     * Similar to {@link #compareWithTemplate}, but with added support for a "*"
+     * wildcard key in template maps, which can apply a sub-template to all
+     * otherwise unmatched keys in the test data.
+     *
+     * @param testLLSD     The LLSD data to be filtered.
+     * @param templateLLSD The template structure to use for filtering.
+     * @param resultLLSD   A map that will be populated with the filtered result.
+     * @return {@code true} if the filtering is successful, {@code false} otherwise.
      */
     public static boolean filterWithTemplate(Object testLLSD, Object templateLLSD, Map<String, Object> resultLLSD) {
         return compareWithTemplateImpl(testLLSD, templateLLSD, resultLLSD, true);
@@ -372,13 +382,17 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Check if LLSD structures match a prototype.
-     * Equivalent to C++ llsd_matches()
-     * 
-     * @param prototype the prototype structure
-     * @param data the data to check
-     * @param prefix prefix for error messages
-     * @return empty string if match, error message if not
+     * Checks if an LLSD data structure matches the structure of a given prototype.
+     * <p>
+     * This method recursively validates that the {@code data} object has the same
+     * structure and compatible types as the {@code prototype}. It's useful for
+     * protocol validation.
+     *
+     * @param prototype The prototype structure to match against.
+     * @param data      The data to be validated.
+     * @param prefix    A string prefix to be used in the error message for context.
+     * @return An empty string if the data matches the prototype, or a descriptive
+     *         error message if it does not.
      */
     public static String llsdMatches(Object prototype, Object data, String prefix) {
         if (prefix == null) prefix = "";
@@ -471,13 +485,17 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Deep equality comparison for LLSD structures.
-     * Equivalent to C++ llsd_equals()
-     * 
-     * @param lhs left-hand side value
-     * @param rhs right-hand side value
-     * @param bits precision for floating point comparison (-1 for exact)
-     * @return true if deeply equal
+     * Performs a deep equality comparison between two LLSD data structures.
+     * <p>
+     * This method recursively compares maps, lists, and primitive values. It
+     * provides an option for approximate comparison of floating-point numbers
+     * based on a specified bit precision.
+     *
+     * @param lhs  The left-hand side object for comparison.
+     * @param rhs  The right-hand side object for comparison.
+     * @param bits The number of bits of precision for floating-point comparison.
+     *             A value of -1 indicates that an exact comparison should be used.
+     * @return {@code true} if the objects are deeply equal, {@code false} otherwise.
      */
     public static boolean llsdEquals(Object lhs, Object rhs, int bits) {
         if (lhs == rhs) return true;
@@ -531,23 +549,25 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Deep equality comparison with default precision.
-     * 
-     * @param lhs left-hand side value
-     * @param rhs right-hand side value
-     * @return true if deeply equal
+     * Performs a deep equality comparison with exact floating-point matching.
+     *
+     * @param lhs The left-hand side object.
+     * @param rhs The right-hand side object.
+     * @return {@code true} if the objects are deeply equal.
      */
     public static boolean llsdEquals(Object lhs, Object rhs) {
         return llsdEquals(lhs, rhs, -1);
     }
     
     /**
-     * Create a deep clone of an LLSD structure.
-     * Equivalent to C++ llsd_clone()
-     * 
-     * @param value the value to clone
-     * @param filter optional filter map (null for no filtering)
-     * @return deep clone of the value
+     * Creates a deep clone of an LLSD data structure, with an optional filter
+     * to include or exclude map keys.
+     *
+     * @param value  The LLSD object to clone.
+     * @param filter An optional map where keys are map keys to be filtered, and
+     *               values are booleans indicating whether to include them. A
+     *               "*" key can be used as a wildcard. Can be {@code null} for no filtering.
+     * @return A deep copy of the value.
      */
     public static Object llsdClone(Object value, Map<String, Boolean> filter) {
         if (value == null) return null;
@@ -593,22 +613,24 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Create a deep clone with no filtering.
-     * 
-     * @param value the value to clone
-     * @return deep clone of the value
+     * Creates a deep clone of an LLSD data structure without any filtering.
+     *
+     * @param value The value to clone.
+     * @return A deep copy of the value.
      */
     public static Object llsdClone(Object value) {
         return llsdClone(value, null);
     }
     
     /**
-     * Create a shallow copy of a map or array.
-     * Equivalent to C++ llsd_shallow()
-     * 
-     * @param value the value to copy
-     * @param filter optional filter map (null for no filtering)
-     * @return shallow copy of the value
+     * Creates a shallow copy of an LLSD map or array, with an optional filter.
+     * <p>
+     * For maps and lists, this creates a new container but the elements themselves
+     * are not copied. For primitive types, it returns the value itself.
+     *
+     * @param value  The value to copy.
+     * @param filter An optional filter for map keys (see {@link #llsdClone(Object, Map)}).
+     * @return A shallow copy of the value.
      */
     public static Object llsdShallow(Object value, Map<String, Boolean> filter) {
         if (value == null) return null;
@@ -646,10 +668,10 @@ public final class LLSDViewerUtils {
     }
     
     /**
-     * Create a shallow copy with no filtering.
-     * 
-     * @param value the value to copy
-     * @return shallow copy of the value
+     * Creates a shallow copy of an LLSD map or array without any filtering.
+     *
+     * @param value The value to copy.
+     * @return A shallow copy of the value.
      */
     public static Object llsdShallow(Object value) {
         return llsdShallow(value, null);

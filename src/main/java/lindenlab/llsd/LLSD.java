@@ -20,28 +20,25 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * LLSD (Linden Lab Structured Data) root document container.
- * 
- * <p>LLSD is a data serialization format used by Linden Lab's Second Life platform.
- * This class represents a parsed LLSD document and provides methods to access its
- * content and serialize it back to XML format.</p>
- * 
- * <p>The content can be any of the supported LLSD data types:
+ * Represents a complete LLSD document, which is a container for a single LLSD element.
+ * <p>
+ * LLSD (Linden Lab Structured Data) is a serialization format used in Second Life
+ * for various data interchange tasks. This class encapsulates a single LLSD value,
+ * which can be of any type supported by the LLSD specification (e.g., integer,
+ * string, map, array).
+ * <p>
+ * This class provides methods to:
  * <ul>
- * <li>{@link java.lang.Boolean} - boolean values</li>
- * <li>{@link java.lang.Integer} - integer values</li>
- * <li>{@link java.lang.Double} - real/double values</li>
- * <li>{@link java.lang.String} - string values</li>
- * <li>{@link java.util.Date} - date values</li>
- * <li>{@link java.net.URI} - URI values</li>
- * <li>{@link java.util.UUID} - UUID values</li>
- * <li>{@link java.util.List} - arrays of LLSD values</li>
- * <li>{@link java.util.Map} - maps with string keys and LLSD values</li>
- * </ul></p>
- * 
- * @since 1.0
- * @author University of St. Andrews (original implementation)
+ *     <li>Hold any valid LLSD data type as its content.</li>
+ *     <li>Serialize the contained data into LLSD XML format.</li>
+ *     <li>Provide a string representation of the data in XML format.</li>
+ * </ul>
+ *
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD">LLSD Specification</a>
  * @see LLSDParser
+ * @see LLSDJsonSerializer
+ * @see LLSDBinarySerializer
+ * @see LLSDNotationSerializer
  */
 public class LLSD {
     private final Object content;
@@ -49,35 +46,37 @@ public class LLSD {
     private DateFormat iso9601Format = null;
 
     /**
-     * Constructs a new LLSD document around the given root element.
-     *
-     * @param setContent the element which goes within the &lt;llsd&gt;
-     * element. May be an instance of a class extending or implementing:
-     *
+     * Constructs a new LLSD document containing the given object.
+     * <p>
+     * The provided object should be a valid LLSD data type, such as:
      * <ul>
-     * <li>java.lang.Double</li>
-     * <li>java.lang.Integer</li>
-     * <li>java.lang.String</li>
-     * <li>java.net.URI</li>
-     * <li>java.util.List</li>
-     * <li>java.util.Map</li>
-     * <li>java.util.UUID</li>
+     *     <li>{@link java.lang.Boolean}</li>
+     *     <li>{@link java.lang.Integer}</li>
+     *     <li>{@link java.lang.Double}</li>
+     *     <li>{@link java.lang.String}</li>
+     *     <li>{@link java.util.Date}</li>
+     *     <li>{@link java.net.URI}</li>
+     *     <li>{@link java.util.UUID}</li>
+     *     <li>{@link java.util.List} of LLSD objects</li>
+     *     <li>{@link java.util.Map} with String keys and LLSD object values</li>
+     *     <li>{@code byte[]} for binary data</li>
+     *     <li>{@link LLSDUndefined} for an undefined value</li>
      * </ul>
      *
-     * If a list or map, must only contain one of those classes inside,
-     * as well.
+     * @param setContent The object to be wrapped in this LLSD document.
      */
     public  LLSD(final Object setContent) {
         this.content = setContent;
     }
 
     /**
-     * Encodes text into HTML - this involves replacing '<', '>', '&' and
-     * '"' with their HTML entity equivalents.
+     * Encodes a string for safe inclusion in an XML document.
+     * <p>
+     * This method replaces special XML characters like {@code <, >, &, "}
+     * with their corresponding XML entities (e.g., {@code &lt;}, {@code &gt;}).
      *
-     * @param text the text to be encoded.
-     * @return the original text if no changes are made, or a new String
-     * otherwise.
+     * @param text The string to be encoded.
+     * @return An XML-safe string. Returns "null" if the input is null.
      */
     public    static        String        encodeXML(final String text) {
         final char[] encodeBuffer;
@@ -182,30 +181,26 @@ public class LLSD {
     }
 
     /**
-     * Returns the element contained within the &lt;llsd&gt; element. May be an
-     * instance of a class extending or implementing:
+     * Retrieves the root object contained within this LLSD document.
+     * <p>
+     * The returned object will be one of the supported LLSD data types.
+     * It is the responsibility of the caller to cast the object to the
+     * expected type.
      *
-     * <ul>
-     * <li>java.lang.Double</li>
-     * <li>java.lang.Integer</li>
-     * <li>java.lang.String</li>
-     * <li>java.net.URI</li>
-     * <li>java.util.List</li>
-     * <li>java.util.Map</li>
-     * <li>java.util.UUID</li>
-     * </ul>
-     *
-     * If a list or map, it will only contain one of those classes inside,
-     * as well.
+     * @return The raw object held by this LLSD document.
      */
     public  Object  getContent() {
         return this.content;
     }
 
     /**
-     * Writes out this LLSD as an XML document to the given writer.
+     * Serializes the contained LLSD data into its XML representation and writes it
+     * to the provided {@link Writer}.
      *
-     * @param charset the character set to specify in the XML intro.
+     * @param writer  The {@link Writer} to which the XML data will be written.
+     * @param charset The character encoding to declare in the XML prolog (e.g., "UTF-8").
+     * @throws IOException   if an I/O error occurs while writing to the writer.
+     * @throws LLSDException if the content contains an unserializable data type.
      */
     public  void    serialise(final Writer writer, final String charset)
         throws IOException, LLSDException {
@@ -218,6 +213,18 @@ public class LLSD {
         writer.write("</llsd>\n");
     }
 
+    /**
+     * Recursively serializes a single LLSD element to the writer.
+     * <p>
+     * This method is called by {@link #serialise(Writer, String)} to handle the
+     * serialization of the document's content. It determines the type of the
+     * object and writes the corresponding LLSD XML tag and value.
+     *
+     * @param writer      The writer to output the XML to.
+     * @param toSerialise The object to be serialized.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the object's type is not a valid LLSD type.
+     */
     private void serialiseElement(final Writer writer, final Object toSerialise)
         throws IOException, LLSDException {
         if (null == iso9601Format) {
@@ -319,14 +326,23 @@ public class LLSD {
 
     }
 
+    /**
+     * Returns the string representation of this LLSD document in XML format.
+     * <p>
+     * This method is a convenience for debugging and logging. It serializes the
+     * content to an LLSD XML string. If serialization fails, it returns an
+     * error message instead of throwing an exception.
+     *
+     * @return A string containing the LLSD data in XML format, or an error
+     *         message if serialization fails.
+     */
+    @Override
     public String toString() {
         final StringWriter writer = new StringWriter();
 
         try {
             serialise(writer, "UTF-8");
-        } catch(IOException e) {
-            return "Unable to serialise LLSD for display: " + e.getMessage();
-        } catch(LLSDException e) {
+        } catch(IOException | LLSDException e) {
             return "Unable to serialise LLSD for display: " + e.getMessage();
         }
 

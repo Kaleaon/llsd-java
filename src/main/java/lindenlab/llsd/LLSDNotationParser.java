@@ -20,58 +20,57 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Parser for LLSD documents in Notation format.
- * 
- * <p>This parser converts notation-formatted LLSD documents into Java objects.
- * The notation format is a compact, human-readable text representation of LLSD data.</p>
- * 
- * <p>Notation format examples:
+ * A parser for LLSD (Linden Lab Structured Data) in its notation format.
+ * <p>
+ * This class is responsible for converting a text-based LLSD notation document
+ * from an {@link InputStream} into a standard Java object structure, wrapped in
+ * an {@link LLSD} object. The notation format is a compact, human-readable
+ * representation that resembles programming language literals.
+ * <p>
+ * The format uses single-character prefixes to denote types:
  * <ul>
- * <li>Boolean: {@code 1} (true), {@code 0} (false), {@code TRUE}, {@code FALSE}</li>
- * <li>Integer: {@code i42} (integer 42)</li>
- * <li>Real: {@code r3.14159} (real number)</li>
- * <li>String: {@code s'hello world'} or {@code s"hello world"}</li>
- * <li>UUID: {@code u550e8400-e29b-41d4-a716-446655440000}</li>
- * <li>Date: {@code d2024-01-01T00:00:00Z}</li>
- * <li>URI: {@code lhttp://example.com}</li>
- * <li>Binary: {@code b64"SGVsbG8="} (base64 encoded)</li>
- * <li>Array: {@code [i1,i2,i3]}</li>
- * <li>Map: {@code {key:s'value',num:i42}}</li>
- * <li>Undefined: {@code !}</li>
- * </ul></p>
- * 
- * <p>Example usage:</p>
- * <pre>{@code
- * LLSDNotationParser parser = new LLSDNotationParser();
- * try (InputStream input = Files.newInputStream(Paths.get("document.llsd"))) {
- *     LLSD document = parser.parse(input);
- *     Object content = document.getContent();
- *     // Process the content...
- * }
- * }</pre>
- * 
- * @since 1.0
+ *   <li><b>{@code !}</b> - Undefined</li>
+ *   <li><b>{@code 1}</b> or <b>{@code true}</b> - Boolean true</li>
+ *   <li><b>{@code 0}</b> or <b>{@code false}</b> - Boolean false</li>
+ *   <li><b>{@code i}</b> - Integer (e.g., {@code i42})</li>
+ *   <li><b>{@code r}</b> - Real/Double (e.g., {@code r3.14})</li>
+ *   <li><b>{@code s}</b> - String (e.g., {@code s'hello'} or {@code s"hello"})</li>
+ *   <li><b>{@code u}</b> - UUID (e.g., {@code u...})</li>
+ *   <li><b>{@code d}</b> - Date (e.g., {@code d2024-01-01T00:00:00Z})</li>
+ *   <li><b>{@code l}</b> - URI (e.g., {@code lhttp://example.com})</li>
+ *   <li><b>{@code b}</b> - Binary (e.g., {@code b64"SGVsbG8="})</li>
+ *   <li><b>{@code [...]}</b> - Array</li>
+ *   <li><b>{@code {...}}</b> - Map</li>
+ * </ul>
+ * This parser includes a self-contained tokenizer and a recursive-descent parser
+ * to interpret this format.
+ *
  * @see LLSD
- * @see LLSDParser
+ * @see LLSDNotationSerializer
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Notation_Serialization">LLSD Notation Specification</a>
  */
 public class LLSDNotationParser {
     private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
     private final Pattern uuidPattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", Pattern.CASE_INSENSITIVE);
 
     /**
-     * Constructs a new LLSD Notation parser.
+     * Initializes a new instance of the {@code LLSDNotationParser}.
      */
     public LLSDNotationParser() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Parses an LLSD document from the given notation input stream.
+     * Parses an LLSD document from a notation-formatted input stream.
+     * <p>
+     * This is the main entry point for parsing. It reads the entire stream,
+     * tokenizes the content, and recursively parses the notation structure.
      *
-     * @param notationInput the notation input stream to read and parse as LLSD.
-     * @return the parsed LLSD document
-     * @throws IOException if there was a problem reading from the input stream.
-     * @throws LLSDException if the document is valid notation, but invalid LLSD.
+     * @param notationInput The input stream containing the notation-formatted data.
+     * @return An {@link LLSD} object representing the parsed data.
+     * @throws IOException   if an I/O error occurs while reading from the stream.
+     * @throws LLSDException if the input is not valid LLSD notation (e.g., syntax
+     *                       error, invalid value format).
      */
     public LLSD parse(final InputStream notationInput) throws IOException, LLSDException {
         // Read entire stream into string for simpler parsing
@@ -91,7 +90,10 @@ public class LLSDNotationParser {
     }
 
     /**
-     * Simple tokenizer for Notation parsing.
+     * A simple, internal tokenizer for breaking LLSD notation into a sequence of tokens.
+     * <p>
+     * This class is designed to handle the specific syntax of LLSD notation,
+     * including type markers, delimited strings, and structural characters.
      */
     private static class NotationTokenizer {
         private final String notation;
@@ -230,6 +232,17 @@ public class LLSDNotationParser {
         }
     }
 
+    /**
+     * Parses a single LLSD value from the token stream based on its type marker.
+     * <p>
+     * This is the core of the recursive descent parser. It inspects the next
+     * character to determine which type of value to parse and delegates to the
+     * appropriate helper method.
+     *
+     * @param tokenizer The tokenizer providing the notation tokens.
+     * @return A Java object representing the parsed value.
+     * @throws LLSDException if an unknown type marker or syntax error is found.
+     */
     private Object parseNotationValue(NotationTokenizer tokenizer) throws LLSDException {
         if (!tokenizer.hasMore()) {
             throw new LLSDException("Expected value but found end of input");

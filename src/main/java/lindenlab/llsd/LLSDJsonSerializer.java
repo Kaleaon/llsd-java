@@ -19,48 +19,57 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 /**
- * Serializer for LLSD documents to JSON format.
- * 
- * <p>This serializer converts LLSD objects into JSON-formatted documents using
- * the LLSD JSON conventions for special data types.</p>
- * 
- * <p>JSON LLSD format conventions:
- * <ul>
- * <li>Dates: {"d":"2024-01-01T00:00:00Z"}</li>
- * <li>URIs: {"u":"http://example.com"}</li>
- * <li>UUIDs: {"i":"550e8400-e29b-41d4-a716-446655440000"}</li>
- * <li>Binary data: {"b":"SGVsbG8gV29ybGQ="}</li>
- * <li>Undefined values: null</li>
- * </ul></p>
- * 
- * @since 1.0
+ * A serializer for converting LLSD (Linden Lab Structured Data) objects into
+ * their JSON representation.
+ * <p>
+ * This class takes an {@link LLSD} object and writes its content to a
+ * {@link Writer} in JSON format. It adheres to the specific conventions used
+ * by LLSD for representing data types like dates, URIs, and binary data within
+ * the JSON structure.
+ * <p>
+ * For example, a {@link java.util.Date} object is not serialized as a simple
+ * number, but as a JSON object with a special key: {@code {"d": "YYYY-MM-DDTHH:MM:SSZ"}}.
+ * This class handles all such conversions automatically.
+ *
  * @see LLSD
  * @see LLSDJsonParser
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#JSON_Serialization">LLSD JSON Specification</a>
  */
 public class LLSDJsonSerializer {
     private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
-     * Constructs a new LLSD JSON serializer.
+     * Initializes a new instance of the {@code LLSDJsonSerializer}.
      */
     public LLSDJsonSerializer() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Serializes an LLSD document to JSON format.
+     * Serializes an LLSD document into its JSON representation and writes it to
+     * the provided {@link Writer}.
      *
-     * @param llsd the LLSD document to serialize
-     * @param writer the writer to output JSON to
-     * @throws IOException if there was a problem writing to the writer
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd   The {@link LLSD} document to be serialized.
+     * @param writer The {@link Writer} to which the JSON output will be sent.
+     * @throws IOException   if an I/O error occurs while writing.
+     * @throws LLSDException if the document contains an unserializable data type.
      */
     public void serialize(LLSD llsd, Writer writer) throws IOException, LLSDException {
         serializeValue(llsd.getContent(), writer);
     }
 
     /**
-     * Serializes a single LLSD value to JSON.
+     * Recursively serializes a single LLSD value into its JSON representation.
+     * <p>
+     * This method is the core of the serializer. It inspects the type of the
+     * value and calls the appropriate helper method to format it as JSON. It
+     * handles the special LLSD conventions for types like Date, URI, UUID, and
+     * binary data.
+     *
+     * @param value  The object to serialize.
+     * @param writer The writer to output the JSON to.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the value type is not supported.
      */
     private void serializeValue(Object value, Writer writer) throws IOException, LLSDException {
         if (value == null || (value instanceof String && ((String) value).isEmpty())) {
@@ -111,6 +120,7 @@ public class LLSDJsonSerializer {
         }
     }
 
+    /** Serializes a Map into a JSON object. */
     @SuppressWarnings("unchecked")
     private void serializeMap(Object value, Writer writer) throws IOException, LLSDException {
         Map<String, Object> map = (Map<String, Object>) value;
@@ -130,6 +140,7 @@ public class LLSDJsonSerializer {
         writer.write("}");
     }
 
+    /** Serializes a List into a JSON array. */
     @SuppressWarnings("unchecked")
     private void serializeArray(Object value, Writer writer) throws IOException, LLSDException {
         List<Object> list = (List<Object>) value;
@@ -147,6 +158,14 @@ public class LLSDJsonSerializer {
         writer.write("]");
     }
 
+    /**
+     * Serializes a String into a JSON string, properly escaping special characters.
+     * This includes quotes, backslashes, and control characters.
+     *
+     * @param str    The string to serialize.
+     * @param writer The writer to output the JSON to.
+     * @throws IOException if an I/O error occurs.
+     */
     private void serializeString(String str, Writer writer) throws IOException {
         writer.write("\"");
         for (int i = 0; i < str.length(); i++) {

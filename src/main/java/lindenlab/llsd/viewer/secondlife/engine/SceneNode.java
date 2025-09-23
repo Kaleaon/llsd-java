@@ -13,12 +13,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.UUID;
 
 /**
- * Basic scene graph node for Second Life 3D engine.
- * 
- * <p>This class provides the foundation for a scene graph structure
- * used in Second Life's 3D rendering system.</p>
- * 
- * @since 1.0
+ * Represents a node in a 3D scene graph, a hierarchical structure used to
+ * organize objects in a 3D world.
+ * <p>
+ * Each node has a transform (position, rotation, scale), a parent, and a list
+ * of children. This allows for complex scenes to be built from simple parts.
+ * The transformation of a child node is relative to its parent, and this class
+ * provides methods to calculate both local and world transformations.
+ * <p>
+ * Nodes can also store arbitrary properties and can be traversed using a
+ * visitor pattern.
  */
 public class SceneNode {
     
@@ -43,7 +47,10 @@ public class SceneNode {
     private boolean transformDirty;
     
     /**
-     * Create a new scene node.
+     * Constructs a new scene node with a given name and a randomly generated UUID.
+     *
+     * @param name The name of the node, used for identification. If null, a default
+     *             name will be generated.
      */
     public SceneNode(String name) {
         this.nodeId = UUID.randomUUID();
@@ -65,7 +72,13 @@ public class SceneNode {
     }
     
     /**
-     * Create a scene node with specific ID (for asset loading).
+     * Constructs a new scene node with a specific UUID and name.
+     * <p>
+     * This constructor is typically used when loading a scene from a file or
+     * asset, where node IDs are predetermined.
+     *
+     * @param nodeId The UUID to assign to this node.
+     * @param name   The name of the node.
      */
     public SceneNode(UUID nodeId, String name) {
         this.nodeId = nodeId;
@@ -98,7 +111,9 @@ public class SceneNode {
     public boolean isEnabled() { return enabled; }
     
     /**
-     * Set position and mark transform dirty.
+     * Sets the position of this node relative to its parent.
+     *
+     * @param position The new local position.
      */
     public void setPosition(Vector3 position) {
         this.position = position;
@@ -106,7 +121,9 @@ public class SceneNode {
     }
     
     /**
-     * Set rotation and mark transform dirty.
+     * Sets the rotation of this node relative to its parent.
+     *
+     * @param rotation The new local rotation as a {@link Quaternion}.
      */
     public void setRotation(Quaternion rotation) {
         this.rotation = rotation;
@@ -114,7 +131,9 @@ public class SceneNode {
     }
     
     /**
-     * Set scale and mark transform dirty.
+     * Sets the scale of this node relative to its parent.
+     *
+     * @param scale The new local scale as a {@link Vector3}.
      */
     public void setScale(Vector3 scale) {
         this.scale = scale;
@@ -122,21 +141,32 @@ public class SceneNode {
     }
     
     /**
-     * Set visibility.
+     * Sets the visibility of this node and its descendants.
+     *
+     * @param visible {@code true} to make the node visible, {@code false} to hide it.
      */
     public void setVisible(boolean visible) {
         this.visible = visible;
     }
     
     /**
-     * Set enabled state.
+     * Sets the enabled state of this node. An inactive node might be skipped
+     * during updates or rendering.
+     *
+     * @param enabled {@code true} to enable the node, {@code false} to disable it.
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
     }
     
     /**
-     * Add a child node.
+     * Adds a child node to this node.
+     * <p>
+     * If the child node already has a parent, it is first removed from its
+     * current parent before being added to this one.
+     *
+     * @param child The {@code SceneNode} to add as a child.
+     * @throws IllegalArgumentException if the child is null or is this node itself.
      */
     public void addChild(SceneNode child) {
         if (child == null || child == this) {
@@ -153,7 +183,9 @@ public class SceneNode {
     }
     
     /**
-     * Remove a child node.
+     * Removes a specific child node from this node's list of children.
+     *
+     * @param child The child node to remove.
      */
     public void removeChild(SceneNode child) {
         if (children.remove(child)) {
@@ -163,7 +195,7 @@ public class SceneNode {
     }
     
     /**
-     * Remove this node from its parent.
+     * Detaches this node from its parent, making it a root node in the scene graph.
      */
     public void removeFromParent() {
         if (parent != null) {
@@ -172,7 +204,10 @@ public class SceneNode {
     }
     
     /**
-     * Find child by name.
+     * Finds a direct child of this node by its name.
+     *
+     * @param name The name of the child to find.
+     * @return The {@link SceneNode} if found, otherwise {@code null}.
      */
     public SceneNode findChild(String name) {
         for (SceneNode child : children) {
@@ -184,7 +219,10 @@ public class SceneNode {
     }
     
     /**
-     * Find child by ID.
+     * Finds a direct child of this node by its UUID.
+     *
+     * @param nodeId The UUID of the child to find.
+     * @return The {@link SceneNode} if found, otherwise {@code null}.
      */
     public SceneNode findChild(UUID nodeId) {
         for (SceneNode child : children) {
@@ -196,7 +234,12 @@ public class SceneNode {
     }
     
     /**
-     * Find descendant by name (recursive).
+     * Recursively finds a descendant of this node by its name.
+     * <p>
+     * This performs a depth-first search of the subtree rooted at this node.
+     *
+     * @param name The name of the descendant to find.
+     * @return The {@link SceneNode} if found, otherwise {@code null}.
      */
     public SceneNode findDescendant(String name) {
         SceneNode child = findChild(name);
@@ -215,42 +258,60 @@ public class SceneNode {
     }
     
     /**
-     * Get property value.
+     * Gets the value of a custom property associated with this node.
+     *
+     * @param key The key of the property.
+     * @return The property value, or {@code null} if the key is not found.
      */
     public Object getProperty(String key) {
         return properties.get(key);
     }
     
     /**
-     * Set property value.
+     * Sets a custom property on this node.
+     *
+     * @param key   The key of the property.
+     * @param value The value of the property.
      */
     public void setProperty(String key, Object value) {
         properties.put(key, value);
     }
     
     /**
-     * Remove property.
+     * Removes a custom property from this node.
+     *
+     * @param key The key of the property to remove.
      */
     public void removeProperty(String key) {
         properties.remove(key);
     }
     
     /**
-     * Check if property exists.
+     * Checks if this node has a custom property with the given key.
+     *
+     * @param key The key to check for.
+     * @return {@code true} if the property exists, {@code false} otherwise.
      */
     public boolean hasProperty(String key) {
         return properties.containsKey(key);
     }
     
     /**
-     * Get all properties.
+     * Gets a copy of the map of all custom properties on this node.
+     *
+     * @return A new {@link Map} containing the node's properties.
      */
     public Map<String, Object> getProperties() {
         return new HashMap<>(properties);
     }
     
     /**
-     * Get local transformation matrix.
+     * Gets the local transformation matrix of this node.
+     * <p>
+     * This matrix represents the node's transformation relative to its parent.
+     * The matrix is cached and only recalculated if the transform is marked as dirty.
+     *
+     * @return A 4x4 matrix representing the local transform.
      */
     public double[][] getLocalTransform() {
         if (transformDirty || localTransform == null) {
@@ -260,7 +321,13 @@ public class SceneNode {
     }
     
     /**
-     * Get world transformation matrix.
+     * Gets the world transformation matrix of this node.
+     * <p>
+     * This matrix represents the node's complete transformation from the root of
+     * the scene graph. It is calculated by combining this node's local transform
+     * with its parent's world transform.
+     *
+     * @return A 4x4 matrix representing the world transform.
      */
     public double[][] getWorldTransform() {
         if (transformDirty || worldTransform == null) {
@@ -270,7 +337,9 @@ public class SceneNode {
     }
     
     /**
-     * Get world position.
+     * Calculates and returns the position of this node in world space.
+     *
+     * @return A {@link Vector3} representing the world position.
      */
     public Vector3 getWorldPosition() {
         double[][] world = getWorldTransform();
@@ -278,7 +347,9 @@ public class SceneNode {
     }
     
     /**
-     * Get world rotation.
+     * Calculates and returns the rotation of this node in world space.
+     *
+     * @return A {@link Quaternion} representing the world rotation.
      */
     public Quaternion getWorldRotation() {
         if (parent == null) {
@@ -289,14 +360,20 @@ public class SceneNode {
     }
     
     /**
-     * Transform a point from local to world space.
+     * Transforms a point from this node's local space into world space.
+     *
+     * @param localPoint The point in local space to be transformed.
+     * @return A new {@link Vector3} representing the point in world space.
      */
     public Vector3 transformToWorld(Vector3 localPoint) {
         return multiplyMatrixVector(getWorldTransform(), localPoint);
     }
     
     /**
-     * Transform a point from world to local space.
+     * Transforms a point from world space into this node's local space.
+     *
+     * @param worldPoint The point in world space to be transformed.
+     * @return A new {@link Vector3} representing the point in local space.
      */
     public Vector3 transformToLocal(Vector3 worldPoint) {
         return multiplyMatrixVector(invertMatrix(getWorldTransform()), worldPoint);
@@ -341,7 +418,11 @@ public class SceneNode {
     }
     
     /**
-     * Get depth in scene hierarchy.
+     * Calculates the depth of this node in the scene graph hierarchy.
+     * <p>
+     * A root node has a depth of 0.
+     *
+     * @return The depth of the node.
      */
     public int getDepth() {
         int depth = 0;
@@ -354,7 +435,11 @@ public class SceneNode {
     }
     
     /**
-     * Check if this node is an ancestor of another node.
+     * Checks if this node is an ancestor of another specified node.
+     *
+     * @param node The potential descendant node.
+     * @return {@code true} if this node is an ancestor of the given node,
+     *         {@code false} otherwise.
      */
     public boolean isAncestorOf(SceneNode node) {
         SceneNode current = node.parent;
@@ -368,7 +453,10 @@ public class SceneNode {
     }
     
     /**
-     * Visit all nodes in subtree (depth-first).
+     * Traverses the subtree rooted at this node in a depth-first order, applying
+     * a {@link NodeVisitor} to each node.
+     *
+     * @param visitor The visitor to apply to each node.
      */
     public void visitSubtree(NodeVisitor visitor) {
         visitor.visit(this);
@@ -378,7 +466,10 @@ public class SceneNode {
     }
     
     /**
-     * Visit all nodes in subtree (breadth-first).
+     * Traverses the subtree rooted at this node in a breadth-first order, applying
+     * a {@link NodeVisitor} to each node.
+     *
+     * @param visitor The visitor to apply to each node.
      */
     public void visitSubtreeBreadthFirst(NodeVisitor visitor) {
         Queue<SceneNode> queue = new LinkedList<>();
@@ -392,7 +483,10 @@ public class SceneNode {
     }
     
     /**
-     * Create LLSD representation of this node.
+     * Converts this scene node and its entire subtree into an LLSD map representation.
+     *
+     * @return A {@link Map} that represents the hierarchical structure and properties
+     *         of this node and its descendants.
      */
     public Map<String, Object> toLLSD() {
         Map<String, Object> nodeData = new HashMap<>();
@@ -415,7 +509,8 @@ public class SceneNode {
     }
     
     /**
-     * Cleanup and unregister node.
+     * Disposes of this node, removing it from its parent and unregistering it
+     * from the global node registry. This should be called to ensure proper cleanup.
      */
     public void dispose() {
         // Remove from parent
@@ -512,30 +607,40 @@ public class SceneNode {
     }
     
     /**
-     * Get node from registry.
+     * Retrieves a {@code SceneNode} from the global registry by its UUID.
+     *
+     * @param nodeId The UUID of the node to retrieve.
+     * @return The {@link SceneNode} if found, otherwise {@code null}.
      */
     public static SceneNode getNode(UUID nodeId) {
         return nodeRegistry.get(nodeId);
     }
     
     /**
-     * Get all registered nodes.
+     * Gets a collection of all currently registered scene nodes.
+     *
+     * @return A new {@link Collection} containing all nodes in the registry.
      */
     public static Collection<SceneNode> getAllNodes() {
         return new ArrayList<>(nodeRegistry.values());
     }
     
     /**
-     * Clear node registry.
+     * Clears the global node registry, removing all registered nodes.
      */
     public static void clearRegistry() {
         nodeRegistry.clear();
     }
     
     /**
-     * Node visitor interface.
+     * A functional interface for implementing the visitor pattern on a scene graph.
      */
     public interface NodeVisitor {
+        /**
+         * This method is called for each node during a traversal.
+         *
+         * @param node The node being visited.
+         */
         void visit(SceneNode node);
     }
     

@@ -18,21 +18,18 @@ import java.util.concurrent.ConcurrentHashMap;
 import javax.imageio.ImageIO;
 
 /**
- * Second Life texture processing and streaming utilities.
- * 
- * <p>This class provides comprehensive texture handling for the Second Life
- * ecosystem, including format conversion, caching, streaming, and validation.</p>
- * 
- * <p>Supported texture formats:</p>
+ * A utility class for processing and managing Second Life texture assets.
+ * <p>
+ * This class provides a suite of static methods for handling texture data within
+ * the Second Life ecosystem. Its responsibilities include:
  * <ul>
- * <li>JPEG2000 (J2C) - Primary SL texture format</li>
- * <li>TGA - Targa format</li>
- * <li>JPEG - Standard JPEG</li>
- * <li>PNG - Portable Network Graphics</li>
- * <li>BMP - Windows Bitmap</li>
+ *   <li>Detecting various texture formats (J2C, TGA, PNG, etc.).</li>
+ *   <li>Parsing texture headers to extract metadata like dimensions and alpha channels.</li>
+ *   <li>Validating textures against Second Life's constraints (e.g., power-of-two dimensions).</li>
+ *   <li>Converting textures between different formats using Java's ImageIO.</li>
+ *   <li>Caching processed texture information to improve performance.</li>
  * </ul>
- * 
- * @since 1.0
+ * As a utility class, it is final and cannot be instantiated.
  */
 public final class SLTextureProcessor {
     
@@ -49,7 +46,7 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Texture format enumeration.
+     * An enumeration of the texture formats supported by the processor.
      */
     public enum TextureFormat {
         J2C("j2c", "image/x-j2c"),
@@ -83,7 +80,11 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Texture metadata container.
+     * A container for metadata extracted from a texture asset.
+     * <p>
+     * This class holds information such as the texture's format, dimensions,
+     * mipmap levels, and whether it has an alpha channel. It also provides a
+     * method to check if the texture conforms to Second Life's technical constraints.
      */
     public static class TextureInfo {
         private final UUID textureId;
@@ -149,15 +150,21 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Process texture data from Second Life format.
-     * 
-     * @param textureId the texture UUID
-     * @param data the raw texture data
-     * @param format the expected texture format
-     * @return processed texture information
-     * @throws LLSDException if processing fails
+     * Processes raw texture data to extract metadata and validate it.
+     * <p>
+     * This is the main entry point for texture processing. It checks a cache for
+     * previously processed data. If not found, it delegates to a format-specific
+     * processing method to parse the image data and extract information. The
+     * results are then cached.
+     *
+     * @param textureId The UUID of the texture asset.
+     * @param data      The raw binary data of the texture.
+     * @param format    The expected format of the texture data. If {@link TextureFormat#UNKNOWN},
+     *                  the format will be auto-detected.
+     * @return A {@link TextureInfo} object containing the extracted metadata.
+     * @throws LLSDException if the texture data is invalid or processing fails.
      */
-    public static TextureInfo processTexture(UUID textureId, byte[] data, TextureFormat format) 
+    public static TextureInfo processTexture(UUID textureId, byte[] data, TextureFormat format)
             throws LLSDException {
         if (textureId == null || data == null || data.length == 0) {
             throw new LLSDException("Invalid texture data");
@@ -303,7 +310,11 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Detect texture format from data.
+     * Detects the texture format of a byte array by inspecting its header (magic numbers).
+     *
+     * @param data The image data to be analyzed.
+     * @return The detected {@link TextureFormat} (J2C, TGA, PNG, etc.), or
+     *         {@link TextureFormat#UNKNOWN} if the format cannot be determined.
      */
     public static TextureFormat detectTextureFormat(byte[] data) {
         if (data == null || data.length < 4) {
@@ -342,9 +353,19 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Convert texture to target format.
+     * Converts texture data from a source format to a target format.
+     * <p>
+     * This method uses Java's ImageIO library to perform the conversion. It is
+     * not capable of converting to or from proprietary formats like J2C or TGA
+     * without additional libraries.
+     *
+     * @param sourceData   The source texture data to convert.
+     * @param sourceFormat The format of the source data.
+     * @param targetFormat The desired target format.
+     * @return A new byte array containing the texture data in the target format.
+     * @throws IOException if the conversion fails or a format is unsupported by ImageIO.
      */
-    public static byte[] convertTexture(byte[] sourceData, TextureFormat sourceFormat, 
+    public static byte[] convertTexture(byte[] sourceData, TextureFormat sourceFormat,
                                        TextureFormat targetFormat) throws IOException {
         if (sourceFormat == targetFormat) {
             return sourceData.clone();
@@ -385,10 +406,18 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Create texture stream LLSD data.
+     * Creates a standard LLSD map structure for a texture stream.
+     * <p>
+     * This method packages the texture's metadata and its raw data into a single
+     * LLSD map, which can then be serialized for transmission or storage.
+     *
+     * @param textureId The UUID of the texture asset.
+     * @param info      The {@link TextureInfo} object containing the texture's metadata.
+     * @param data      The raw binary data of the texture.
+     * @return A {@link Map} representing the texture stream.
      */
-    public static Map<String, Object> createTextureStreamData(UUID textureId, 
-                                                              TextureInfo info, 
+    public static Map<String, Object> createTextureStreamData(UUID textureId,
+                                                              TextureInfo info,
                                                               byte[] data) {
         Map<String, Object> streamData = new HashMap<>();
         streamData.put("AssetID", textureId);
@@ -406,7 +435,14 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Validate texture dimensions for Second Life.
+     * Validates if given dimensions are valid for a Second Life texture.
+     * <p>
+     * SL textures must have dimensions that are powers of two and fall within
+     * a specific range (e.g., 64x64 to 1024x1024).
+     *
+     * @param width  The width of the texture.
+     * @param height The height of the texture.
+     * @return {@code true} if the dimensions are valid, {@code false} otherwise.
      */
     public static boolean isValidSLTextureDimensions(int width, int height) {
         return width >= MIN_TEXTURE_SIZE && width <= MAX_TEXTURE_SIZE &&
@@ -452,14 +488,17 @@ public final class SLTextureProcessor {
     }
     
     /**
-     * Clear texture cache.
+     * Clears all entries from the internal texture cache.
      */
     public static void clearCache() {
         textureCache.clear();
     }
     
     /**
-     * Get cache statistics.
+     * Gets statistics about the current state of the texture cache.
+     *
+     * @return A map containing statistics such as the number of cached items
+     *         and the total size of cached data.
      */
     public static Map<String, Object> getCacheStats() {
         Map<String, Object> stats = new HashMap<>();

@@ -19,24 +19,15 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * Firestorm specific LLSD utilities and extensions.
- * 
- * <p>This class provides LLSD functionality that is specific to the Firestorm
- * viewer implementation, building upon the base Second Life functionality with
- * additional features, optimizations, and viewer-specific enhancements.</p>
- * 
- * <p>Key Firestorm specific features:</p>
- * <ul>
- * <li>Enhanced RLV (Restrained Life Viewer) support</li>
- * <li>Advanced radar and contact management</li>
- * <li>Enhanced media and streaming data structures</li>
- * <li>Firestorm-specific UI and preference handling</li>
- * <li>Bridge and LSL communication enhancements</li>
- * <li>Performance monitoring and statistics</li>
- * <li>Advanced scripting and automation support</li>
- * </ul>
- * 
- * @since 1.0
+ * A utility class providing LLSD (Linden Lab Structured Data) functionality
+ * specific to the Firestorm viewer.
+ * <p>
+ * This class encapsulates methods for creating and validating LLSD structures
+ * that are unique to Firestorm, such as those related to RLV (Restrained Life
+ * Viewer), radar, performance monitoring, and the viewer bridge. It builds upon
+ * the base functionality provided by the standard Second Life LLSD implementation.
+ * <p>
+ * As a utility class, it is final and cannot be instantiated.
  */
 public final class FirestormLLSDUtils {
     
@@ -45,7 +36,8 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Firestorm specific message types extending Second Life types.
+     * An enumeration of message types that are specific to the Firestorm viewer,
+     * extending the base set of Second Life message types.
      */
     public enum FSMessageType {
         // RLV related
@@ -80,11 +72,11 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * RLV (Restrained Life Viewer) command structure.
-     * 
-     * <p>Represents an RLV command following Second Life RLV standards.
-     * All RLV commands must have a command string, and optionally parameters,
-     * options, and source identification for security tracking.</p>
+     * Represents a command for the RLV (Restrained Life Viewer) system.
+     * <p>
+     * This class encapsulates the components of an RLV command, including the
+     * command itself, a parameter, an option, and the source of the command.
+     * It provides methods to convert the command to and from its LLSD representation.
      */
     public static class RLVCommand {
         private final String command;
@@ -94,12 +86,12 @@ public final class FirestormLLSDUtils {
         
         /**
          * Constructs a new RLV command.
-         * 
-         * @param command the RLV command (required, cannot be null or empty)
-         * @param param the command parameter (can be null or empty)
-         * @param option the command option (can be null or empty)
-         * @param sourceId the UUID of the command source (required for security)
-         * @throws IllegalArgumentException if command is null/empty or sourceId is null
+         *
+         * @param command  The RLV command string (e.g., "@sit"). Must not be null or empty.
+         * @param param    The command parameter (e.g., "ground"). Can be null.
+         * @param option   The command option (e.g., "=force"). Can be null.
+         * @param sourceId The UUID of the object that issued the command. Must not be null.
+         * @throws IllegalArgumentException if {@code command} or {@code sourceId} is null.
          */
         public RLVCommand(String command, String param, String option, UUID sourceId) {
             if (command == null || command.trim().isEmpty()) {
@@ -148,9 +140,9 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Convert to LLSD representation.
-         * 
-         * @return LLSD map containing RLV command data, never null
+         * Converts this RLV command into its LLSD map representation.
+         *
+         * @return A {@link Map} representing the RLV command, suitable for serialization.
          */
         public Map<String, Object> toLLSD() {
             Map<String, Object> rlvData = new HashMap<>();
@@ -163,11 +155,13 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Parse from LLSD representation.
-         * 
-         * @param llsdData the LLSD data to parse (must be a Map)
-         * @return parsed RLV command, never null
-         * @throws LLSDException if parsing fails or data is invalid
+         * Parses an {@code RLVCommand} from its LLSD representation.
+         *
+         * @param llsdData The LLSD object, which must be a {@link Map} containing
+         *                 the RLV command fields.
+         * @return A new {@code RLVCommand} instance.
+         * @throws LLSDException if the provided LLSD data is not a valid representation
+         *                       of an RLV command (e.g., missing required fields).
          */
         public static RLVCommand fromLLSD(Object llsdData) throws LLSDException {
             if (llsdData == null) {
@@ -217,17 +211,18 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Firestorm radar data.
-     * 
-     * @param agentId the agent UUID (required)
-     * @param name the agent display name (can be null)
-     * @param userName the agent username (can be null)
-     * @param position the agent position as [x, y, z] array (can be null)
-     * @param distance the distance from viewer (must be >= 0)
-     * @param typing whether the agent is typing
-     * @param attachments list of agent attachments (can be null)
-     * @return LLSD map containing radar data, never null
-     * @throws IllegalArgumentException if agentId is null or distance is negative
+     * Creates an LLSD map representing data for the Firestorm radar system.
+     *
+     * @param agentId     The UUID of the agent being tracked.
+     * @param name        The display name of the agent.
+     * @param userName    The username of the agent.
+     * @param position    A 3-element array representing the agent's position (x, y, z).
+     * @param distance    The distance of the agent from the viewer.
+     * @param typing      {@code true} if the agent is currently typing.
+     * @param attachments A list of maps, where each map represents an attachment.
+     * @return A {@link Map} containing the structured radar data.
+     * @throws IllegalArgumentException if {@code agentId} is null, {@code distance} is
+     *                                  negative, or {@code position} is not a 3-element array.
      */
     public static Map<String, Object> createRadarData(UUID agentId,
                                                       String name,
@@ -266,14 +261,17 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Firestorm bridge communication.
-     * 
-     * @param command the bridge command (required)
-     * @param parameters the command parameters (can be null)
-     * @param requestId the request identifier (auto-generated if null)
-     * @param priority the message priority 0-3 (clamped to valid range)
-     * @return LLSD map containing bridge data, never null
-     * @throws IllegalArgumentException if command is null or empty
+     * Creates an LLSD map for a message to be sent over the Firestorm bridge.
+     * <p>
+     * The bridge is a mechanism for communication between the viewer and external
+     * or LSL-based tools.
+     *
+     * @param command    The command to be executed by the bridge.
+     * @param parameters A map of parameters for the command.
+     * @param requestId  A unique identifier for the request. If null, one is generated.
+     * @param priority   The message priority, which will be clamped to the range 0-3.
+     * @return A {@link Map} containing the structured bridge message.
+     * @throws IllegalArgumentException if {@code command} is null or empty.
      */
     public static Map<String, Object> createBridgeMessage(String command,
                                                           Map<String, Object> parameters,
@@ -297,16 +295,16 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Firestorm performance statistics.
-     * 
-     * @param fps the current FPS (must be >= 0)
-     * @param bandwidth the current bandwidth usage in bytes/sec (must be >= 0)
-     * @param memoryUsed the memory usage in MB (must be >= 0)
-     * @param renderTime the render time in milliseconds (must be >= 0)
-     * @param scriptTime the script processing time in milliseconds (must be >= 0)
-     * @param triangles the number of triangles rendered (must be >= 0)
-     * @return LLSD map containing performance data, never null
-     * @throws IllegalArgumentException if any parameter is negative
+     * Creates an LLSD map containing performance statistics from the viewer.
+     *
+     * @param fps        Current frames per second.
+     * @param bandwidth  Current network bandwidth usage in bytes/sec.
+     * @param memoryUsed Current memory usage in megabytes.
+     * @param renderTime Frame render time in milliseconds.
+     * @param scriptTime LSL script execution time in milliseconds.
+     * @param triangles  Number of triangles rendered in the last frame.
+     * @return A {@link Map} containing the performance data.
+     * @throws IllegalArgumentException if any of the numeric arguments are negative.
      */
     public static Map<String, Object> createPerformanceStats(double fps,
                                                              double bandwidth,
@@ -346,15 +344,15 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Create an LLSD structure for Firestorm media data.
-     * 
-     * @param mediaUrl the media URL (can be null)
-     * @param mediaType the media type (audio/video, can be null)
-     * @param autoPlay whether to auto-play
-     * @param autoScale whether to auto-scale
-     * @param looping whether to loop playback
-     * @param volume the playback volume (will be clamped to 0.0-1.0 range)
-     * @return LLSD map containing media data, never null
+     * Creates an LLSD map containing settings for parcel media.
+     *
+     * @param mediaUrl  The URL of the media to be played.
+     * @param mediaType The MIME type of the media (e.g., "video/mp4").
+     * @param autoPlay  {@code true} if the media should play automatically.
+     * @param autoScale {@code true} if the media should scale to fit its surface.
+     * @param looping   {@code true} if the media should loop.
+     * @param volume    The playback volume, which will be clamped to the range [0.0, 1.0].
+     * @return A {@link Map} containing the structured media data.
      */
     public static Map<String, Object> createMediaData(String mediaUrl,
                                                       String mediaType,
@@ -375,11 +373,14 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Firestorm-specific LLSD validation with enhanced rules.
-     * 
-     * @param llsdData the LLSD data to validate
-     * @param rules the Firestorm validation rules
-     * @return validation result
+     * Validates an LLSD data structure against a set of Firestorm-specific rules.
+     * <p>
+     * This method first applies the base Second Life validation rules and then
+     * adds Firestorm-specific checks, such as minimum viewer version or RLV status.
+     *
+     * @param llsdData The LLSD object to validate.
+     * @param rules    The {@link FSValidationRules} to apply.
+     * @return An {@link FSValidationResult} containing any errors or warnings found.
      */
     public static FSValidationResult validateFSStructure(Object llsdData, FSValidationRules rules) {
         FSValidationResult result = new FSValidationResult();
@@ -430,14 +431,15 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Check if a Firestorm version is compatible with the minimum required version.
-     * 
-     * <p>Supports semantic versioning format (major.minor.patch.build) and handles
-     * various edge cases including missing components and non-numeric parts.</p>
-     * 
-     * @param version the version to check (can be null)
-     * @param minVersion the minimum required version (can be null)
-     * @return true if version meets or exceeds minimum requirement
+     * Compares two Firestorm version strings to check for compatibility.
+     * <p>
+     * This method can parse version strings in the format "major.minor.patch.build"
+     * and correctly determine if a given version meets or exceeds a minimum required version.
+     *
+     * @param version    The version string to check.
+     * @param minVersion The minimum required version string.
+     * @return {@code true} if {@code version} is greater than or equal to
+     *         {@code minVersion}, {@code false} otherwise.
      */
     private static boolean isCompatibleFSVersion(String version, String minVersion) {
         if (version == null || minVersion == null || 
@@ -485,11 +487,10 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Firestorm-specific validation rules extending base SL rules.
-     * 
-     * <p>This class provides a fluent interface for configuring validation rules
-     * specific to Firestorm viewer requirements, building upon the base Second Life
-     * validation framework.</p>
+     * A builder class for defining a set of validation rules specific to Firestorm LLSD.
+     * <p>
+     * It provides a fluent API for specifying required fields, types, and
+     * Firestorm-specific conditions like a minimum viewer version or RLV status.
      */
     public static class FSValidationRules {
         private final SecondLifeLLSDUtils.SLValidationRules baseRules = new SecondLifeLLSDUtils.SLValidationRules();
@@ -605,7 +606,11 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Enhanced validation result for Firestorm-specific checks.
+     * A class that holds the results of a validation check performed by
+     * {@link #validateFSStructure(Object, FSValidationRules)}.
+     * <p>
+     * It separates validation issues into errors, warnings, and informational
+     * messages.
      */
     public static class FSValidationResult {
         private final List<String> errors = new ArrayList<>();
@@ -675,14 +680,13 @@ public final class FirestormLLSDUtils {
     }
     
     /**
-     * Thread-safe cache for Firestorm LLSD processing with automatic expiration.
-     * 
-     * <p>This cache provides high-performance concurrent access with automatic cleanup
-     * of expired entries. It uses ConcurrentHashMap for thread-safe operations while
-     * maintaining good performance characteristics.</p>
-     * 
-     * <p>Note: The cache size() method triggers cleanup of expired entries and should
-     * be used judiciously in high-throughput scenarios.</p>
+     * A thread-safe cache designed for high-performance LLSD processing, featuring
+     * automatic expiration of entries.
+     * <p>
+     * This cache uses a {@link ConcurrentHashMap} for thread safety and is suitable
+     * for storing frequently accessed LLSD data that has a limited lifetime.
+     * Note that some operations, like {@link #size()}, may trigger a cleanup
+     * of expired entries and could have a performance impact.
      */
     public static class FSLLSDCache {
         private final ConcurrentHashMap<String, Object> cache = new ConcurrentHashMap<>();
@@ -690,10 +694,11 @@ public final class FirestormLLSDUtils {
         private final ConcurrentHashMap<String, Long> timestamps = new ConcurrentHashMap<>();
         
         /**
-         * Creates a new cache with the specified maximum age for entries.
-         * 
-         * @param maxAgeMillis maximum age of cache entries in milliseconds (must be positive)
-         * @throws IllegalArgumentException if maxAgeMillis is not positive
+         * Creates a new cache with a specified maximum age for its entries.
+         *
+         * @param maxAgeMillis The maximum time in milliseconds that an entry should
+         *                     remain in the cache before it is considered expired.
+         * @throws IllegalArgumentException if {@code maxAgeMillis} is not positive.
          */
         public FSLLSDCache(long maxAgeMillis) {
             if (maxAgeMillis <= 0) {
@@ -703,11 +708,11 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Stores a value in the cache with the current timestamp.
-         * 
-         * @param key the cache key (must not be null)
-         * @param value the value to store (can be null)
-         * @throws IllegalArgumentException if key is null
+         * Puts a key-value pair into the cache.
+         *
+         * @param key   The key for the cache entry. Cannot be null.
+         * @param value The value to be stored.
+         * @throws IllegalArgumentException if {@code key} is null.
          */
         public void put(String key, Object value) {
             if (key == null) {
@@ -720,11 +725,15 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Retrieves a value from the cache, removing it if expired.
-         * 
-         * @param key the cache key (must not be null) 
-         * @return the cached value, or null if not found or expired
-         * @throws IllegalArgumentException if key is null
+         * Retrieves a value from the cache.
+         * <p>
+         * If the entry for the given key has expired, it is removed from the cache
+         * and this method returns {@code null}.
+         *
+         * @param key The key of the entry to retrieve. Cannot be null.
+         * @return The cached value, or {@code null} if the key is not found or the
+         *         entry has expired.
+         * @throws IllegalArgumentException if {@code key} is null.
          */
         public Object get(String key) {
             if (key == null) {
@@ -742,9 +751,9 @@ public final class FirestormLLSDUtils {
         
         /**
          * Checks if the cache contains a non-expired entry for the given key.
-         * 
-         * @param key the cache key to check
-         * @return true if the key exists and is not expired
+         *
+         * @param key The key to check.
+         * @return {@code true} if a valid, non-expired entry exists for the key.
          */
         public boolean contains(String key) {
             return get(key) != null;
@@ -770,12 +779,13 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Returns the current size of the cache after cleaning expired entries.
-         * 
-         * <p>This operation may be expensive as it scans for expired entries.
-         * Use sparingly in performance-critical code.</p>
-         * 
-         * @return the number of non-expired entries in the cache
+         * Returns the number of non-expired entries currently in the cache.
+         * <p>
+         * <b>Note:</b> This operation first triggers a cleanup of expired entries,
+         * which can be expensive. It should be used with caution in
+         * performance-sensitive code.
+         *
+         * @return The number of valid entries in the cache.
          */
         public int size() {
             cleanExpiredEntries();
@@ -809,9 +819,9 @@ public final class FirestormLLSDUtils {
         }
         
         /**
-         * Gets statistics about the cache state.
-         * 
-         * @return a map containing cache statistics
+         * Gets a map containing statistics about the current state of the cache.
+         *
+         * @return A map with statistical data like size and max age.
          */
         public Map<String, Object> getStatistics() {
             Map<String, Object> stats = new HashMap<>();

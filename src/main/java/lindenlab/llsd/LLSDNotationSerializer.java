@@ -19,53 +19,56 @@ import java.util.TimeZone;
 import java.util.UUID;
 
 /**
- * Serializer for LLSD documents to Notation format.
- * 
- * <p>This serializer converts LLSD objects into notation-formatted documents using
- * the compact LLSD notation syntax.</p>
- * 
- * <p>Notation format output examples:
- * <ul>
- * <li>Boolean: {@code 1} (true), {@code 0} (false)</li>
- * <li>Integer: {@code i42}</li>
- * <li>Real: {@code r3.14159}</li>
- * <li>String: {@code s'hello world'}</li>
- * <li>UUID: {@code u550e8400-e29b-41d4-a716-446655440000}</li>
- * <li>Date: {@code d2024-01-01T00:00:00Z}</li>
- * <li>URI: {@code lhttp://example.com}</li>
- * <li>Binary: {@code b64"SGVsbG8="}</li>
- * <li>Array: {@code [i1,i2,i3]}</li>
- * <li>Map: {@code {key:s'value',num:i42}}</li>
- * </ul></p>
- * 
- * @since 1.0
+ * A serializer for converting LLSD (Linden Lab Structured Data) objects into
+ * their notation format.
+ * <p>
+ * This class takes an {@link LLSD} object and writes its content to a
+ * {@link Writer} as a compact, human-readable string. The notation format uses
+ * single-character prefixes to denote data types, making it more concise than
+ * XML or JSON but still easy to read and edit by hand.
+ * <p>
+ * The serializer handles all standard LLSD types, converting them to their
+ * corresponding notation representation (e.g., an integer {@code 42} becomes
+ * {@code i42}). It also correctly formats arrays, maps, and special values
+ * like dates and UUIDs.
+ *
  * @see LLSD
  * @see LLSDNotationParser
+ * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Notation_Serialization">LLSD Notation Specification</a>
  */
 public class LLSDNotationSerializer {
     private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
     /**
-     * Constructs a new LLSD Notation serializer.
+     * Initializes a new instance of the {@code LLSDNotationSerializer}.
      */
     public LLSDNotationSerializer() {
         iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
     /**
-     * Serializes an LLSD document to Notation format.
+     * Serializes an LLSD document into its notation representation and writes it
+     * to the provided {@link Writer}.
      *
-     * @param llsd the LLSD document to serialize
-     * @param writer the writer to output notation to
-     * @throws IOException if there was a problem writing to the writer
-     * @throws LLSDException if there was a problem serializing the LLSD data
+     * @param llsd   The {@link LLSD} document to be serialized.
+     * @param writer The {@link Writer} to which the notation output will be sent.
+     * @throws IOException   if an I/O error occurs while writing.
+     * @throws LLSDException if the document contains an unserializable data type.
      */
     public void serialize(LLSD llsd, Writer writer) throws IOException, LLSDException {
         serializeValue(llsd.getContent(), writer);
     }
 
     /**
-     * Serializes a single LLSD value to notation.
+     * Recursively serializes a single LLSD value into its notation representation.
+     * <p>
+     * This is the core of the serializer. It inspects the object's type and
+     * writes the corresponding type marker and formatted value.
+     *
+     * @param value  The object to serialize.
+     * @param writer The writer for the output.
+     * @throws IOException   if an I/O error occurs.
+     * @throws LLSDException if the value type is not supported.
      */
     private void serializeValue(Object value, Writer writer) throws IOException, LLSDException {
         if (value == null || (value instanceof String && ((String) value).isEmpty())) {
@@ -113,6 +116,7 @@ public class LLSDNotationSerializer {
         }
     }
 
+    /** Serializes a Map into notation as {@code {key:value,...}}. */
     @SuppressWarnings("unchecked")
     private void serializeMap(Object value, Writer writer) throws IOException, LLSDException {
         Map<String, Object> map = (Map<String, Object>) value;
@@ -139,6 +143,7 @@ public class LLSDNotationSerializer {
         writer.write("}");
     }
 
+    /** Serializes a List into notation as {@code [value1,value2,...]}. */
     @SuppressWarnings("unchecked")
     private void serializeArray(Object value, Writer writer) throws IOException, LLSDException {
         List<Object> list = (List<Object>) value;
@@ -156,6 +161,7 @@ public class LLSDNotationSerializer {
         writer.write("]");
     }
 
+    /** Serializes a String into notation as {@code s'...'}. */
     private void serializeString(String str, Writer writer) throws IOException {
         writer.write("s'");
         // Escape single quotes and backslashes
@@ -185,6 +191,7 @@ public class LLSDNotationSerializer {
         writer.write("'");
     }
 
+    /** Serializes a byte array into base64 notation as {@code b64"..."}. */
     private void serializeBinary(byte[] data, Writer writer) throws IOException {
         writer.write("b64\"");
         writer.write(Base64.getEncoder().encodeToString(data));
@@ -192,7 +199,13 @@ public class LLSDNotationSerializer {
     }
 
     /**
-     * Checks if a string is a valid identifier (can be used as an unquoted map key).
+     * Checks if a string is a valid identifier in LLSD notation.
+     * <p>
+     * A valid identifier can be used as an unquoted map key. It must start
+     * with a letter or underscore, followed by letters, digits, or underscores.
+     *
+     * @param str The string to check.
+     * @return {@code true} if the string is a valid identifier, {@code false} otherwise.
      */
     private boolean isValidIdentifier(String str) {
         if (str.isEmpty()) {
