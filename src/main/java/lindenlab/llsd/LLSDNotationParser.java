@@ -333,7 +333,7 @@ public class LLSDNotationParser {
         String uuidStr = tokenizer.consumeUntil(',', ']', '}', ' ', '\t', '\n', '\r');
         
         if (!uuidPattern.matcher(uuidStr).matches()) {
-            throw new LLSDException("Invalid UUID format: " + uuidStr);
+            throw new LLSDException("Invalid UUID format: '" + uuidStr + "'. Expected format: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'");
         }
         
         try {

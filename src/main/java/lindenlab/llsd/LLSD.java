@@ -291,7 +291,9 @@ public class LLSD {
             // Handle binary data as base64 encoded
             byte[] binaryData = (byte[]) toSerialise;
             String base64Data = Base64.getEncoder().encodeToString(binaryData);
-            writer.write("<binary>" + base64Data + "</binary>\n");
+            writer.write("<binary>");
+            writer.write(base64Data);
+            writer.write("</binary>\n");
         } else if (toSerialise instanceof LLSDUndefined) {
             switch((LLSDUndefined)toSerialise) {
             case BINARY:

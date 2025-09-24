@@ -416,7 +416,7 @@ public class LLSDJsonParser {
             dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
             return dateFormat.parse(dateStr);
         } catch (ParseException e) {
-            throw new LLSDException("Invalid date format: " + dateStr, e);
+            throw new LLSDException("Invalid date format: '" + dateStr + "'. Expected ISO 8601 format: '" + ISO8601_PATTERN + "'", e);
         }
     }
 
@@ -430,7 +430,7 @@ public class LLSDJsonParser {
 
     private UUID parseUuid(String uuidStr) throws LLSDException {
         if (!uuidPattern.matcher(uuidStr).matches()) {
-            throw new LLSDException("Invalid UUID format: " + uuidStr);
+            throw new LLSDException("Invalid UUID format: '" + uuidStr + "'. Expected format: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'");
         }
         try {
             return UUID.fromString(uuidStr);

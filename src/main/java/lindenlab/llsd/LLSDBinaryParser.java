@@ -91,7 +91,8 @@ public class LLSDBinaryParser {
             // Read and verify header
             byte[] header = reader.readBytes(LLSD_BINARY_HEADER_BYTES.length);
             if (!Arrays.equals(header, LLSD_BINARY_HEADER_BYTES)) {
-                throw new LLSDException("Invalid binary LLSD header");
+                String actualHeader = new String(header, StandardCharsets.US_ASCII);
+                throw new LLSDException("Invalid binary LLSD header: expected '" + LLSD_BINARY_HEADER + "', got '" + actualHeader + "'");
             }
             skipWhitespace(reader);
         }

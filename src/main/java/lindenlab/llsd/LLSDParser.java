@@ -258,13 +258,20 @@ public class LLSDParser {
         nodeText = new StringBuilder();
         for (int nodeIdx = 0; nodeIdx < childNodes.getLength(); nodeIdx++) {
             final Node childNode = childNodes.item(nodeIdx);
+            if (childNode == null) {
+                continue; // Skip null nodes
+            }
 
             switch (childNode.getNodeType()) {
             case Node.TEXT_NODE:
-                nodeText.append(childNode.getNodeValue());
+                String nodeValue = childNode.getNodeValue();
+                if (nodeValue != null) {
+                    nodeText.append(nodeValue);
+                }
                 break;
             case Node.ELEMENT_NODE:
-                if (childNode.getNodeName().equals("undef")) {
+                String elementName = childNode.getNodeName();
+                if (elementName != null && elementName.equals("undef")) {
                     isUndefined = true;
                 }
                 break;
