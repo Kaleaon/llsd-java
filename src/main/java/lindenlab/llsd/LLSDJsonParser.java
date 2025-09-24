@@ -44,7 +44,6 @@ import java.util.regex.Pattern;
  */
 public class LLSDJsonParser {
     private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
-    private final Pattern uuidPattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", Pattern.CASE_INSENSITIVE);
 
     /**
      * Initializes a new instance of the {@code LLSDJsonParser}.
@@ -429,7 +428,7 @@ public class LLSDJsonParser {
     }
 
     private UUID parseUuid(String uuidStr) throws LLSDException {
-        if (!uuidPattern.matcher(uuidStr).matches()) {
+        if (!LLSDUtils.UUID_PATTERN.matcher(uuidStr).matches()) {
             throw new LLSDException("Invalid UUID format: '" + uuidStr + "'. Expected format: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'");
         }
         try {
