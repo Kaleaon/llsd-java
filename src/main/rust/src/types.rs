@@ -6,6 +6,7 @@
  */
 
 use std::collections::HashMap;
+use std::borrow::Borrow;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 use chrono::{DateTime, Utc};
@@ -219,11 +220,22 @@ impl LLSDValue {
         for part in &parts[..parts.len() - 1] {
             match current {
                 LLSDValue::Map(map) => {
-                    current = map.get_mut(part)?;
+                    let key_str = part.to_string();
+                    match map.get_mut(&key_str) {
+                        Some(next) => current = next,
+                        None => return false,
+                    }
                 }
                 LLSDValue::Array(arr) => {
-                    let index: usize = part.parse().ok()?;
-                    current = arr.get_mut(index)?;
+                    if let Ok(index) = part.parse::<usize>() {
+                        if let Some(next) = arr.get_mut(index) {
+                            current = next;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
                 }
                 _ => return false,
             }

@@ -7,6 +7,62 @@
 
 import { LLSDValue, LLSDMap, LLSDArray, LLSDException, LLSDUtils } from '../types';
 
+/**
+ * Validation rules for Second Life LLSD structures
+ */
+export class SLValidationRules {
+    requiresMap: boolean = false;
+    requiresArray: boolean = false;
+    requiredFields: Set<string> = new Set();
+    fieldTypes: Map<string, string> = new Map();
+
+    requireMap(): this {
+        this.requiresMap = true;
+        return this;
+    }
+
+    requireArray(): this {
+        this.requiresArray = true;
+        return this;
+    }
+
+    requireField(name: string, type?: string): this {
+        this.requiredFields.add(name);
+        if (type) {
+            this.fieldTypes.set(name, type);
+        }
+        return this;
+    }
+}
+
+/**
+ * Validation result
+ */
+export class SLValidationResult {
+    private errors: string[] = [];
+    private warnings: string[] = [];
+
+    addError(error: string): void {
+        this.errors.push(error);
+    }
+
+    addWarning(warning: string): void {
+        this.warnings.push(warning);
+    }
+
+    isValid(): boolean {
+        return this.errors.length === 0;
+    }
+
+    getErrors(): string[] {
+        return [...this.errors];
+    }
+
+    getWarnings(): string[] {
+        return [...this.warnings];
+    }
+}
+
 export class SecondLifeLLSDUtils {
     /**
      * Create a Second Life compatible LLSD response structure
@@ -103,7 +159,7 @@ export class SecondLifeLLSDUtils {
                 asset_data: data
             },
             folder_id: LLSDUtils.generateUUID(),
-            inventory_type: this.assetTypeToInventoryType(assetType),
+            inventory_type: SecondLifeLLSDUtils.assetTypeToInventoryType(assetType),
             expected_upload_cost: expectedUploadCost,
             everyone_mask: 0x00000000,
             group_mask: 0x00000000,
@@ -141,7 +197,8 @@ export class SecondLifeLLSDUtils {
             'mesh': 22
         };
         
-        return mapping[assetType.toLowerCase()] || -1;
+        const result = mapping[assetType.toLowerCase()];
+        return result !== undefined ? result : -1;
     }
 
     /**
@@ -198,66 +255,10 @@ export class SecondLifeLLSDUtils {
     }
 
     /**
-     * Validation rules for Second Life LLSD structures
-     */
-    static ValidationRules = class {
-        requiresMap: boolean = false;
-        requiresArray: boolean = false;
-        requiredFields: Set<string> = new Set();
-        fieldTypes: Map<string, string> = new Map();
-
-        requireMap(): SecondLifeLLSDUtils.ValidationRules {
-            this.requiresMap = true;
-            return this;
-        }
-
-        requireArray(): SecondLifeLLSDUtils.ValidationRules {
-            this.requiresArray = true;
-            return this;
-        }
-
-        requireField(name: string, type?: string): SecondLifeLLSDUtils.ValidationRules {
-            this.requiredFields.add(name);
-            if (type) {
-                this.fieldTypes.set(name, type);
-            }
-            return this;
-        }
-    };
-
-    /**
-     * Validation result
-     */
-    static ValidationResult = class {
-        private errors: string[] = [];
-        private warnings: string[] = [];
-
-        addError(error: string): void {
-            this.errors.push(error);
-        }
-
-        addWarning(warning: string): void {
-            this.warnings.push(warning);
-        }
-
-        isValid(): boolean {
-            return this.errors.length === 0;
-        }
-
-        getErrors(): string[] {
-            return [...this.errors];
-        }
-
-        getWarnings(): string[] {
-            return [...this.warnings];
-        }
-    };
-
-    /**
      * Validate Second Life LLSD structure
      */
-    static validateSLStructure(llsdData: LLSDValue, rules: SecondLifeLLSDUtils.ValidationRules): SecondLifeLLSDUtils.ValidationResult {
-        const result = new SecondLifeLLSDUtils.ValidationResult();
+    static validateSLStructure(llsdData: LLSDValue, rules: SLValidationRules): SLValidationResult {
+        const result = new SLValidationResult();
 
         if (rules.requiresMap && (typeof llsdData !== 'object' || Array.isArray(llsdData))) {
             result.addError(`Expected Map but got ${typeof llsdData}`);

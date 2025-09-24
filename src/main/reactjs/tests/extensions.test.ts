@@ -3,8 +3,8 @@
  */
 
 import { LLSDMap, LLSDArray, LLSDUtils } from '../src/types';
-import { SecondLifeLLSDUtils } from '../src/secondlife/SecondLifeLLSDUtils';
-import { FirestormLLSDUtils } from '../src/firestorm/FirestormLLSDUtils';
+import { SecondLifeLLSDUtils, SLValidationRules } from '../src/secondlife/SecondLifeLLSDUtils';
+import { FirestormLLSDUtils, FSValidationRules } from '../src/firestorm/FirestormLLSDUtils';
 
 describe('SecondLife LLSD Utils', () => {
     describe('SL Response Creation', () => {
@@ -137,7 +137,7 @@ describe('SecondLife LLSD Utils', () => {
 
     describe('Validation', () => {
         test('should validate map structures', () => {
-            const rules = new SecondLifeLLSDUtils.ValidationRules()
+            const rules = new SLValidationRules()
                 .requireMap()
                 .requireField('name', 'string')
                 .requireField('age', 'number');
@@ -150,7 +150,7 @@ describe('SecondLife LLSD Utils', () => {
         });
 
         test('should report missing required fields', () => {
-            const rules = new SecondLifeLLSDUtils.ValidationRules()
+            const rules = new SLValidationRules()
                 .requireMap()
                 .requireField('name')
                 .requireField('age');
@@ -163,7 +163,7 @@ describe('SecondLife LLSD Utils', () => {
         });
 
         test('should warn about type mismatches', () => {
-            const rules = new SecondLifeLLSDUtils.ValidationRules()
+            const rules = new SLValidationRules()
                 .requireMap()
                 .requireField('age', 'number');
             
@@ -278,7 +278,7 @@ describe('Firestorm LLSD Utils', () => {
 
     describe('Firestorm Validation', () => {
         test('should validate Firestorm structures', () => {
-            const rules = new FirestormLLSDUtils.FSValidationRules()
+            const rules = new FSValidationRules()
                 .requireMap()
                 .requireFSVersion('6.0.0')
                 .requireRLV()
@@ -295,24 +295,24 @@ describe('Firestorm LLSD Utils', () => {
         });
 
         test('should report missing Firestorm version', () => {
-            const rules = new FirestormLLSDUtils.FSValidationRules()
+            const rules = new FSValidationRules()
                 .requireFSVersion('6.0.0');
             
             const invalidData = { command: 'test' }; // missing version
             const result = FirestormLLSDUtils.validateFSStructure(invalidData, rules);
             
             expect(result.isValid()).toBe(false);
-            expect(result.getErrors().some(e => e.includes('Firestorm version'))).toBe(true);
+            expect(result.getErrors().some((e: string) => e.includes('Firestorm version'))).toBe(true);
         });
 
         test('should warn about missing RLV', () => {
-            const rules = new FirestormLLSDUtils.FSValidationRules()
+            const rules = new FSValidationRules()
                 .requireRLV();
             
             const invalidData = { command: 'test' }; // missing RLV
             const result = FirestormLLSDUtils.validateFSStructure(invalidData, rules);
             
-            expect(result.getWarnings().some(w => w.includes('RLV'))).toBe(true);
+            expect(result.getWarnings().some((w: string) => w.includes('RLV'))).toBe(true);
         });
     });
 
@@ -360,7 +360,7 @@ describe('Firestorm LLSD Utils', () => {
 
     describe('Version Compatibility', () => {
         test('should validate compatible versions', () => {
-            const rules = new FirestormLLSDUtils.FSValidationRules()
+            const rules = new FSValidationRules()
                 .requireFSVersion('6.0.0');
             
             const compatibleData = { firestorm_version: '6.5.0' };
@@ -370,14 +370,14 @@ describe('Firestorm LLSD Utils', () => {
         });
 
         test('should reject incompatible versions', () => {
-            const rules = new FirestormLLSDUtils.FSValidationRules()
+            const rules = new FSValidationRules()
                 .requireFSVersion('6.0.0');
             
             const incompatibleData = { firestorm_version: '5.9.0' };
             const result = FirestormLLSDUtils.validateFSStructure(incompatibleData, rules);
             
             expect(result.isValid()).toBe(false);
-            expect(result.getErrors().some(e => e.includes('Incompatible'))).toBe(true);
+            expect(result.getErrors().some((e: string) => e.includes('Incompatible'))).toBe(true);
         });
     });
 
