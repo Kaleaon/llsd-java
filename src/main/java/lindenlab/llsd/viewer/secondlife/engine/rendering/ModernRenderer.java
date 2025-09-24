@@ -57,61 +57,101 @@ public class ModernRenderer {
     private boolean enablePostProcessing;
     
     /**
-     * Rendering settings and quality levels.
+     * Encapsulates all rendering settings, quality levels, and feature flags
+     * for the renderer.
+     * <p>
+     * This class allows for fine-grained control over the rendering pipeline,
+     * enabling trade-offs between visual quality and performance.
      */
     public static class RenderSettings {
-        // Quality settings
+        /** The overall quality level, which can be used to preset other settings. */
         public QualityLevel overallQuality;
+        /** The quality level for shaders, affecting complexity and effects. */
         public QualityLevel shaderQuality;
+        /** The quality level for textures, affecting resolution and filtering. */
         public QualityLevel textureQuality;
+        /** The quality level for shadows, affecting resolution and technique. */
         public QualityLevel shadowQuality;
+        /** The quality level for particle effects. */
         public QualityLevel particleQuality;
         
-        // Resolution and performance
+        /** The width of the rendering viewport in pixels. */
         public int renderWidth;
+        /** The height of the rendering viewport in pixels. */
         public int renderHeight;
-        public float renderScale; // For dynamic resolution
+        /** A scaling factor for the render resolution, used for dynamic resolution. */
+        public float renderScale;
+        /** The maximum target frames per second. */
         public int maxFPS;
+        /** If true, the renderer can dynamically adjust quality to maintain performance. */
         public boolean adaptiveQuality;
         
-        // Rendering features
+        /** Enables Physically-Based Rendering (PBR). */
         public boolean enablePBR;
+        /** Enables High Dynamic Range (HDR) rendering pipeline. */
         public boolean enableHDR;
+        /** Enables Multi-Sample Anti-Aliasing (MSAA). */
         public boolean enableMSAA;
+        /** The number of samples to use for MSAA. */
         public int msaaSamples;
+        /** Enables anisotropic filtering for textures to improve quality at oblique angles. */
         public boolean enableAnisotropicFiltering;
+        /** The level of anisotropic filtering to apply (e.g., 2, 4, 8, 16). */
         public int anisotropyLevel;
         
-        // Lighting
+        /** Enables dynamic lighting from light sources in the scene. */
         public boolean enableDynamicLighting;
+        /** The maximum number of dynamic lights to process per frame. */
         public int maxDynamicLights;
+        /** Enables shadow mapping. */
         public boolean enableShadows;
+        /** The technique used for rendering shadows. */
         public ShadowTechnique shadowTechnique;
+        /** The resolution of the shadow maps (e.g., 1024, 2048). */
         public int shadowMapSize;
+        /** The maximum number of objects that can cast shadows per light source. */
         public int maxShadowCasters;
         
-        // Advanced features
+        /** Enables Screen-Space Ambient Occlusion (SSAO). */
         public boolean enableSSAO;
-        public boolean enableSSR; // Screen Space Reflections
+        /** Enables Screen-Space Reflections (SSR). */
+        public boolean enableSSR;
+        /** Enables volumetric lighting effects (e.g., god rays). */
         public boolean enableVolumetricLighting;
+        /** Enables motion blur post-processing effect. */
         public boolean enableMotionBlur;
+        /** Enables depth of field post-processing effect. */
         public boolean enableDepthOfField;
+        /** Enables bloom post-processing effect for bright lights. */
         public boolean enableBloom;
+        /** Enables tone mapping to convert HDR colors to a displayable range. */
         public boolean enableToneMapping;
         
-        // Performance optimization
+        /** Enables occlusion culling to avoid rendering objects hidden by others. */
         public boolean enableOcclusionCulling;
+        /** Enables frustum culling to avoid rendering objects outside the camera's view. */
         public boolean enableFrustumCulling;
+        /** Enables the Level of Detail (LOD) system for objects. */
         public boolean enableLODSystem;
+        /** Enables geometry instancing to render many identical objects efficiently. */
         public boolean enableInstancing;
+        /** Enables GPU-based culling, typically using compute shaders. */
         public boolean enableGPUCulling;
         
+        /**
+         * An enumeration of general quality levels.
+         */
         public enum QualityLevel {
+            /** Lowest quality, highest performance. */
             LOW(0),
+            /** Balanced quality and performance. */
             MEDIUM(1),
+            /** High visual quality. */
             HIGH(2),
+            /** Highest visual quality, may impact performance. */
             ULTRA(3);
             
+            /** The integer value of the quality level. */
             public final int level;
             
             QualityLevel(int level) {
@@ -119,14 +159,26 @@ public class ModernRenderer {
             }
         }
         
+        /**
+         * An enumeration of shadow rendering techniques.
+         */
         public enum ShadowTechnique {
+            /** No shadows are rendered. */
             NONE,
+            /** Basic, single-pass shadow mapping. */
             BASIC_SHADOW_MAPPING,
+            /** Cascaded Shadow Mapping (CSM) for large, open scenes. */
             CASCADE_SHADOW_MAPPING,
+            /** Variance Shadow Mapping (VSM) for soft shadows. */
             VARIANCE_SHADOW_MAPPING,
+            /** Exponential Shadow Mapping (ESM) for soft shadows. */
             EXPONENTIAL_SHADOW_MAPPING
         }
         
+        /**
+         * Constructs a new {@code RenderSettings} object with default values
+         * suitable for modern hardware.
+         */
         public RenderSettings() {
             // Default settings for modern hardware
             this.overallQuality = QualityLevel.HIGH;
@@ -172,41 +224,72 @@ public class ModernRenderer {
     }
     
     /**
-     * Rendering statistics and performance metrics.
+     * A container for rendering statistics and performance metrics for a single frame.
+     * <p>
+     * This class tracks a wide range of metrics, from frame rate and draw calls
+     * to memory usage and detailed timing for different parts of the render pipeline.
      */
     public static class RenderStats {
+        /** The total number of frames rendered since the last reset. */
         public long frameCount;
+        /** The time taken to render the last frame, in seconds. */
         public double frameTime;
+        /** The instantaneous frames per second for the last frame. */
         public double fps;
+        /** A smoothed, running average of the frames per second. */
         public double averageFPS;
         
+        /** The number of individual draw calls issued to the GPU. */
         public int drawCalls;
+        /** The total number of triangles rendered. */
         public int trianglesRendered;
+        /** The total number of vertices processed by the GPU. */
         public int verticesProcessed;
+        /** The number of texture binding operations. */
         public int textureBinds;
+        /** The number of shader program switches. */
         public int shaderSwitches;
         
+        /** The number of objects rendered after culling. */
         public int objectsRendered;
+        /** The number of objects culled and not rendered. */
         public int objectsCulled;
+        /** The number of active light sources affecting the scene. */
         public int lightsActive;
+        /** The number of individual particles rendered. */
         public int particlesRendered;
         
+        /** An estimate of the GPU memory currently in use, in bytes. */
         public long gpuMemoryUsed;
+        /** An estimate of the system (RAM) memory used by the renderer, in bytes. */
         public long systemMemoryUsed;
         
-        // Performance timing (in milliseconds)
+        /** The time spent on culling operations, in milliseconds. */
         public double cullTime;
+        /** The time spent rendering shadow maps, in milliseconds. */
         public double shadowTime;
+        /** The time spent on the main geometry pass, in milliseconds. */
         public double geometryTime;
+        /** The time spent on the lighting pass, in milliseconds. */
         public double lightingTime;
+        /** The time spent rendering particles, in milliseconds. */
         public double particleTime;
+        /** The time spent on post-processing effects, in milliseconds. */
         public double postProcessTime;
+        /** The time spent presenting the final frame to the screen, in milliseconds. */
         public double presentTime;
         
+        /**
+         * Constructs a new {@code RenderStats} object and initializes all metrics to zero.
+         */
         public RenderStats() {
             reset();
         }
         
+        /**
+         * Resets all statistical counters and timers to zero.
+         * This is typically called at the beginning of each frame.
+         */
         public void reset() {
             frameCount = 0;
             frameTime = 0.0;
@@ -236,6 +319,11 @@ public class ModernRenderer {
             presentTime = 0.0;
         }
         
+        /**
+         * Updates the frame rate statistics based on the time taken for the last frame.
+         *
+         * @param deltaTime The duration of the last frame in seconds.
+         */
         public void updateFPS(double deltaTime) {
             frameTime = deltaTime;
             fps = deltaTime > 0 ? 1.0 / deltaTime : 0.0;
@@ -249,24 +337,36 @@ public class ModernRenderer {
     }
     
     /**
-     * Camera for 3D rendering.
+     * Represents a camera in the 3D scene, defining the viewpoint and projection.
+     * <p>
+     * The camera manages its position, orientation (look-at target and up vector),
+     * and projection properties (field of view, aspect ratio, near/far clipping planes).
+     * It provides methods for controlling camera movement and calculating view-related vectors.
      */
     public static class Camera {
         private Vector3 position;
         private Vector3 target;
         private Vector3 up;
         
-        // Projection parameters
-        private float fov; // Field of view in radians
+        /** The vertical field of view in radians. */
+        private float fov;
+        /** The aspect ratio of the viewport (width / height). */
         private float aspectRatio;
+        /** The distance to the near clipping plane. */
         private float nearPlane;
+        /** The distance to the far clipping plane. */
         private float farPlane;
         
-        // Derived matrices (would be calculated by renderer)
+        /** The cached view matrix. */
         private double[][] viewMatrix;
+        /** The cached projection matrix. */
         private double[][] projectionMatrix;
+        /** The cached combined view-projection matrix. */
         private double[][] viewProjectionMatrix;
         
+        /**
+         * Constructs a new {@code Camera} with default position and projection settings.
+         */
         public Camera() {
             this.position = new Vector3(0, 0, 5);
             this.target = Vector3.ZERO;
@@ -350,14 +450,25 @@ public class ModernRenderer {
     }
     
     /**
-     * Light source for scene lighting.
+     * Represents a light source in the 3D scene, which illuminates render objects.
+     * <p>
+     * This class can represent different types of lights, such as directional,
+     * point, and spot lights. It manages properties like color, intensity, range,
+     * and shadow-casting parameters.
      */
     public static class LightSource {
+        /**
+         * An enumeration of the different types of light sources.
+         */
         public enum LightType {
-            DIRECTIONAL,  // Sun/moon light
-            POINT,        // Point light with falloff
-            SPOT,         // Spot light with cone
-            AREA          // Area light (advanced)
+            /** A light with parallel rays, simulating a distant source like the sun. */
+            DIRECTIONAL,
+            /** A light that emits from a single point in all directions, with falloff. */
+            POINT,
+            /** A light that emits from a point in a specific direction, within a cone. */
+            SPOT,
+            /** A light that emits from a surface area (advanced, for soft lighting). */
+            AREA
         }
         
         private LightType type;
@@ -367,18 +478,26 @@ public class ModernRenderer {
         private double intensity;
         private double range;
         
-        // Spot light parameters
+        /** The inner angle of the spot light cone, in radians. */
         private double innerConeAngle;
+        /** The outer angle of the spot light cone, in radians. */
         private double outerConeAngle;
         
-        // Shadow parameters
+        /** If true, this light can cast shadows. */
         private boolean castShadows;
+        /** The resolution of the shadow map for this light. */
         private int shadowMapSize;
+        /** A bias value to prevent shadow acne artifacts. */
         private double shadowBias;
         
-        // Area light parameters
-        private Vector3 size; // For area lights
+        /** The size of the light for area light calculations. */
+        private Vector3 size;
         
+        /**
+         * Constructs a new {@code LightSource} of a specified type with default properties.
+         *
+         * @param type The type of light to create (e.g., {@code LightType.POINT}).
+         */
         public LightSource(LightType type) {
             this.type = type;
             this.position = Vector3.ZERO;
@@ -435,7 +554,14 @@ public class ModernRenderer {
         public void setSize(Vector3 size) { this.size = size; }
         
         /**
-         * Calculate light attenuation at given distance.
+         * Calculates the attenuation of the light's intensity over a given distance.
+         * <p>
+         * For directional lights, there is no attenuation. For point and spot lights,
+         * this method typically uses an inverse square law.
+         *
+         * @param distance The distance from the light source.
+         * @return A factor between 0.0 and 1.0 representing the light's intensity
+         *         at the given distance.
          */
         public double getAttenuation(double distance) {
             if (type == LightType.DIRECTIONAL) {
@@ -454,7 +580,15 @@ public class ModernRenderer {
         }
         
         /**
-         * Calculate spot light cone attenuation.
+         * Calculates the attenuation factor for a spot light based on its cone.
+         * <p>
+         * For a point on a surface, this method determines how much the light's
+         * intensity is reduced based on the angle between the light's direction
+         * and the vector to the surface point.
+         *
+         * @param lightToSurface A normalized vector from the light's position to the
+         *                       point being illuminated.
+         * @return A factor between 0.0 and 1.0. Returns 1.0 for non-spot lights.
          */
         public double getConeAttenuation(Vector3 lightToSurface) {
             if (type != LightType.SPOT) {
@@ -477,27 +611,42 @@ public class ModernRenderer {
     }
     
     /**
-     * Render object representing a drawable entity.
+     * Represents a drawable entity in the scene, combining a mesh, a material,
+     * and a scene node for its transformation.
+     * <p>
+     * A {@code RenderObject} is the fundamental unit of rendering. It holds all
+     * necessary information for the renderer to draw an object, including its
+     * geometry (mesh), appearance (material), position in the scene graph,
+     * and rendering properties like visibility and shadow casting.
      */
     public static class RenderObject {
-        private UUID objectId;
-        private SceneNode sceneNode;
-        private Mesh mesh;
-        private PBRMaterial material;
-        private BoundingBox boundingBox;
+        private final UUID objectId;
+        private final SceneNode sceneNode;
+        private final Mesh mesh;
+        private final PBRMaterial material;
+        private final BoundingBox boundingBox;
         
-        // Rendering properties
         private boolean visible;
         private boolean castShadows;
         private boolean receiveShadows;
         private int renderLayer;
         private double distanceToCamera;
         
-        // Level of Detail (LOD)
-        private List<Mesh> lodMeshes;
-        private List<Double> lodDistances;
+        /** A list of meshes for different levels of detail. */
+        private final List<Mesh> lodMeshes;
+        /** The distances at which each LOD becomes active. */
+        private final List<Double> lodDistances;
+        /** The currently active level of detail. */
         private int currentLOD;
         
+        /**
+         * Constructs a new {@code RenderObject}.
+         *
+         * @param objectId  The unique identifier for this object.
+         * @param sceneNode The scene graph node that defines this object's transform.
+         * @param mesh      The mesh that defines the object's geometry.
+         * @param material  The PBR material that defines the object's appearance.
+         */
         public RenderObject(UUID objectId, SceneNode sceneNode, Mesh mesh, PBRMaterial material) {
             this.objectId = objectId;
             this.sceneNode = sceneNode;
@@ -572,19 +721,32 @@ public class ModernRenderer {
     }
     
     /**
-     * Simple mesh representation (would be more complex in real implementation).
+     * A simple representation of a 3D mesh, containing geometry data.
+     * <p>
+     * In a real implementation, this class would manage vertex buffers, index
+     * buffers, and vertex array objects (VAOs) on the GPU. This version serves
+     * as a placeholder for these concepts.
      */
     public static class Mesh {
-        private String name;
-        private int vertexCount;
-        private int triangleCount;
-        private BoundingBox boundingBox;
+        private final String name;
+        private final int vertexCount;
+        private final int triangleCount;
+        private final BoundingBox boundingBox;
         
-        // OpenGL buffer objects (would be actual GPU resource IDs)
+        /** The ID of the vertex buffer object (VBO) on the GPU. */
         private int vertexBufferId;
+        /** The ID of the index buffer object (IBO) on the GPU. */
         private int indexBufferId;
+        /** The ID of the vertex array object (VAO) on the GPU. */
         private int vertexArrayId;
         
+        /**
+         * Constructs a new {@code Mesh}.
+         *
+         * @param name          The name of the mesh.
+         * @param vertexCount   The number of vertices in the mesh.
+         * @param triangleCount The number of triangles in the mesh.
+         */
         public Mesh(String name, int vertexCount, int triangleCount) {
             this.name = name;
             this.vertexCount = vertexCount;
@@ -603,12 +765,21 @@ public class ModernRenderer {
     }
     
     /**
-     * Bounding box for culling and collision detection.
+     * An axis-aligned bounding box (AABB) used for culling and collision detection.
+     * <p>
+     * An AABB is defined by its minimum and maximum corner points. This class
+     * provides methods for intersection tests and for calculating properties
+     * like center and size.
      */
     public static class BoundingBox {
+        /** The minimum corner of the box (lowest x, y, and z coordinates). */
         public Vector3 min;
+        /** The maximum corner of the box (highest x, y, and z coordinates). */
         public Vector3 max;
         
+        /**
+         * Constructs a new {@code BoundingBox} with default min/max values.
+         */
         public BoundingBox() {
             this.min = new Vector3(-1, -1, -1);
             this.max = new Vector3(1, 1, 1);
@@ -645,11 +816,19 @@ public class ModernRenderer {
     }
     
     /**
-     * View frustum for culling.
+     * Represents the view frustum of a camera, defined by six planes.
+     * <p>
+     * The view frustum is a geometric shape (a truncated pyramid) that defines
+     * the volume of space visible to the camera. It is used for frustum culling,
+     * which is the process of discarding objects that are outside this volume.
      */
     public static class ViewFrustum {
-        private Plane[] planes; // 6 frustum planes
+        /** The six planes that define the frustum (near, far, left, right, top, bottom). */
+        private final Plane[] planes;
         
+        /**
+         * Constructs a new {@code ViewFrustum} and initializes its six planes.
+         */
         public ViewFrustum() {
             planes = new Plane[6];
             for (int i = 0; i < 6; i++) {
@@ -676,10 +855,19 @@ public class ModernRenderer {
             return true; // Box intersects or is inside frustum
         }
         
+        /**
+         * Represents a plane in 3D space, defined by a normal vector and a
+         * distance from the origin.
+         */
         public static class Plane {
+            /** The normal vector of the plane. */
             public Vector3 normal;
+            /** The distance from the origin to the plane along its normal. */
             public double distance;
             
+            /**
+             * Constructs a new {@code Plane} with default values.
+             */
             public Plane() {
                 this.normal = Vector3.Y_AXIS;
                 this.distance = 0.0;
@@ -697,10 +885,25 @@ public class ModernRenderer {
     }
     
     /**
-     * Simple culling system.
+     * A system responsible for culling objects to improve rendering performance.
+     * <p>
+     * Culling is the process of discarding objects that do not need to be rendered.
+     * This implementation includes frustum culling and updates object distances
+     * for Level of Detail (LOD) calculations.
      */
     public static class CullingSystem {
         
+        /**
+         * Culls a list of render objects against the camera's view frustum.
+         * <p>
+         * This method iterates through the objects, performs frustum culling,
+         * updates their distance to the camera, and selects the appropriate LOD.
+         *
+         * @param objects   The list of all render objects in the scene.
+         * @param frustum   The camera's view frustum.
+         * @param cameraPos The position of the camera.
+         * @return A new list containing only the visible render objects.
+         */
         public List<RenderObject> cullObjects(List<RenderObject> objects, ViewFrustum frustum, Vector3 cameraPos) {
             List<RenderObject> visibleObjects = new ArrayList<>();
             
@@ -747,17 +950,23 @@ public class ModernRenderer {
         }
     }
     
-    // Placeholder classes for various renderer components
+    /** A placeholder for the main rendering pipeline manager. */
     public static class RenderPipeline {}
+    /** A placeholder for a class that manages shader loading and compilation. */
     public static class ShaderManager {}
+    /** A placeholder for a class that manages texture loading and GPU resources. */
     public static class TextureManager {}
+    /** A placeholder for a class that manages GPU buffers (VBOs, IBOs, UBOs). */
     public static class BufferManager {}
+    /** A placeholder for a class that handles rendering the skybox and atmospheric effects. */
     public static class SkyRenderer {}
+    /** A placeholder for a class that handles rendering water surfaces. */
     public static class WaterRenderer {}
+    /** A placeholder for a class that manages the post-processing effects pipeline. */
     public static class PostProcessingPipeline {}
     
     /**
-     * Create a new modern renderer.
+     * Constructs a new {@code ModernRenderer}, initializing its components and settings.
      */
     public ModernRenderer() {
         this.initialized = false;
@@ -777,7 +986,12 @@ public class ModernRenderer {
     }
     
     /**
-     * Initialize the renderer.
+     * Initializes the renderer and all its subsystems.
+     * <p>
+     * This method should be called once before any rendering operations are performed.
+     * It sets up the rendering pipeline, shader manager, and other necessary components.
+     *
+     * @return {@code true} if initialization was successful, {@code false} otherwise.
      */
     public boolean initialize() {
         if (initialized) return true;
@@ -803,7 +1017,10 @@ public class ModernRenderer {
     }
     
     /**
-     * Shutdown the renderer and cleanup resources.
+     * Shuts down the renderer and releases all associated resources.
+     * <p>
+     * This method should be called when the application is closing to ensure
+     * proper cleanup of GPU resources and other managed objects.
      */
     public void shutdown() {
         if (!initialized) return;
@@ -819,7 +1036,14 @@ public class ModernRenderer {
     }
     
     /**
-     * Render a frame.
+     * Renders a single frame of the scene.
+     * <p>
+     * This is the main loop of the renderer. It performs all necessary steps to
+     * render the scene, including culling, shadow mapping, geometry and lighting
+     * passes, and post-processing.
+     *
+     * @param deltaTime The time elapsed since the last frame, in seconds. This
+     *                  is used for animations and performance calculations.
      */
     public void renderFrame(double deltaTime) {
         if (!initialized) return;
@@ -1000,30 +1224,58 @@ public class ModernRenderer {
         stats.presentTime = (System.nanoTime() - startTime) / 1_000_000.0;
     }
     
-    // Public API methods
-    
+    /**
+     * Adds a renderable object to the scene.
+     *
+     * @param obj The {@link RenderObject} to add.
+     */
     public void addRenderObject(RenderObject obj) {
         renderObjects.put(obj.getObjectId(), obj);
     }
     
+    /**
+     * Removes a renderable object from the scene by its ID.
+     *
+     * @param objectId The UUID of the object to remove.
+     */
     public void removeRenderObject(UUID objectId) {
         renderObjects.remove(objectId);
     }
     
+    /**
+     * Adds a light source to the scene.
+     *
+     * @param light The {@link LightSource} to add.
+     */
     public void addLightSource(LightSource light) {
         if (lightSources.size() < settings.maxDynamicLights) {
             lightSources.add(light);
         }
     }
     
+    /**
+     * Removes a light source from the scene.
+     *
+     * @param light The {@link LightSource} to remove.
+     */
     public void removeLightSource(LightSource light) {
         lightSources.remove(light);
     }
     
+    /**
+     * Adds a particle system to the scene.
+     *
+     * @param system The {@link ParticleSystem} to add.
+     */
     public void addParticleSystem(ParticleSystem system) {
         particleSystems.add(system);
     }
     
+    /**
+     * Removes a particle system from the scene.
+     *
+     * @param system The {@link ParticleSystem} to remove.
+     */
     public void removeParticleSystem(ParticleSystem system) {
         particleSystems.remove(system);
     }
