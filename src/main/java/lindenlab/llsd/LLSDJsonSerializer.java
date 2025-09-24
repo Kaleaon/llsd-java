@@ -36,13 +36,13 @@ import java.util.UUID;
  * @see <a href="http://wiki.secondlife.com/wiki/LLSD#JSON_Serialization">LLSD JSON Specification</a>
  */
 public class LLSDJsonSerializer {
-    private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     /**
      * Initializes a new instance of the {@code LLSDJsonSerializer}.
      */
     public LLSDJsonSerializer() {
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        // No initialization needed - date formatters are created locally for thread safety
     }
 
     /**
@@ -98,7 +98,10 @@ public class LLSDJsonSerializer {
             writer.write(value.toString());
         } else if (value instanceof Date) {
             writer.write("{\"d\":\"");
-            writer.write(iso8601Format.format((Date) value));
+            // Create a new DateFormat instance for thread safety
+            DateFormat dateFormat = new SimpleDateFormat(ISO8601_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            writer.write(dateFormat.format((Date) value));
             writer.write("\"}");
         } else if (value instanceof URI) {
             writer.write("{\"u\":");

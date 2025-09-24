@@ -14,8 +14,6 @@ import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -41,8 +39,7 @@ import java.util.*;
 public class LLSDBinaryParser {
     private static final String LLSD_BINARY_HEADER = "<?llsd/binary?>";
     private static final byte[] LLSD_BINARY_HEADER_BYTES = LLSD_BINARY_HEADER.getBytes(StandardCharsets.US_ASCII);
-    
-    private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     // Binary markers
     private static final byte UNDEF_MARKER = (byte) '!';
@@ -65,7 +62,7 @@ public class LLSDBinaryParser {
      * Initializes a new instance of the {@code LLSDBinaryParser}.
      */
     public LLSDBinaryParser() {
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        // No initialization needed - formatters are created locally for thread safety
     }
 
     /**

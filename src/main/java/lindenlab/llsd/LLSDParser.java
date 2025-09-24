@@ -38,7 +38,7 @@ import java.util.Base64;
  * @see <a href="http://wiki.secondlife.com/wiki/LLSD#XML_Serialization">LLSD XML Specification</a>
  */
 public class LLSDParser {
-    private final DateFormat iso9601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     /**
      * Document builder used to parse the replies
@@ -158,7 +158,10 @@ public class LLSDParser {
         }
 
         try {
-            value = this.iso9601Format.parse(elementContents);
+            // Create a new DateFormat instance for thread safety
+            DateFormat dateFormat = new SimpleDateFormat(ISO8601_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            value = dateFormat.parse(elementContents);
         } catch(java.text.ParseException e) {
             throw new LLSDException("Unable to parse LLSD date value, received \""
                 + elementContents + "\".", e);

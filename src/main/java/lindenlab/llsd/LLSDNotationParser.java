@@ -50,14 +50,14 @@ import java.util.regex.Pattern;
  * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Notation_Serialization">LLSD Notation Specification</a>
  */
 public class LLSDNotationParser {
-    private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
     private final Pattern uuidPattern = Pattern.compile("[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", Pattern.CASE_INSENSITIVE);
 
     /**
      * Initializes a new instance of the {@code LLSDNotationParser}.
      */
     public LLSDNotationParser() {
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        // No initialization needed - date formatters are created locally for thread safety
     }
 
     /**
@@ -348,7 +348,10 @@ public class LLSDNotationParser {
         String dateStr = tokenizer.consumeUntil(',', ']', '}', ' ', '\t', '\n', '\r');
         
         try {
-            return iso8601Format.parse(dateStr);
+            // Create a new DateFormat instance for thread safety
+            DateFormat dateFormat = new SimpleDateFormat(ISO8601_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            return dateFormat.parse(dateStr);
         } catch (ParseException e) {
             throw new LLSDException("Invalid date format: " + dateStr, e);
         }

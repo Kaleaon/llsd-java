@@ -17,6 +17,7 @@ import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.UUID;
 
 /**
@@ -42,8 +43,7 @@ import java.util.UUID;
  */
 public class LLSD {
     private final Object content;
-    private DecimalFormat decimalFormat = null;
-    private DateFormat iso9601Format = null;
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     /**
      * Constructs a new LLSD document containing the given object.
@@ -227,10 +227,10 @@ public class LLSD {
      */
     private void serialiseElement(final Writer writer, final Object toSerialise)
         throws IOException, LLSDException {
-        if (null == iso9601Format) {
-            iso9601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
-            decimalFormat = new DecimalFormat("#0.0#");
-        }
+        // Create thread-safe local formatter instances
+        DateFormat dateFormat = new SimpleDateFormat(ISO8601_PATTERN);
+        dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+        DecimalFormat decimalFormat = new DecimalFormat("#0.0#");
 
         assert null != toSerialise;
 
@@ -283,7 +283,7 @@ public class LLSD {
                 + encodeXML((String)toSerialise) + "</string>\n");
         } else if (toSerialise instanceof Date) {
             writer.write("<date>"
-                + iso9601Format.format((Date)toSerialise) + "</date>");
+                + dateFormat.format((Date)toSerialise) + "</date>");
         } else if (toSerialise instanceof URI) {
             writer.write("<uri>"
                 + encodeXML(toSerialise.toString()) + "</uri>");
