@@ -197,7 +197,8 @@ export class SecondLifeLLSDUtils {
             'mesh': 22
         };
         
-        return mapping[assetType.toLowerCase()] || -1;
+        const result = mapping[assetType.toLowerCase()];
+        return result !== undefined ? result : -1;
     }
 
     /**

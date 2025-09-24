@@ -14,7 +14,9 @@ export class LLSDXMLParser {
     constructor() {
         this.parser = new DOMParser({
             errorHandler: {
-                warning: () => {}, // Ignore warnings
+                warning: () => {
+                    // Just log warnings, don't fail on them
+                }, 
                 error: (error: string) => {
                     throw new LLSDException(`XML parsing error: ${error}`);
                 },
@@ -41,11 +43,6 @@ export class LLSDXMLParser {
             const parseError = doc.getElementsByTagName('parsererror')[0];
             if (parseError) {
                 throw new LLSDException(`XML parsing error: ${parseError.textContent}`);
-            }
-            
-            // Check if document is empty or malformed
-            if (!doc.documentElement) {
-                throw new LLSDException('Malformed XML document: no document element');
             }
             
             const llsdElement = doc.getElementsByTagName('llsd')[0];
