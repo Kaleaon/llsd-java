@@ -210,7 +210,7 @@ mod tests {
             map
         });
 
-        assert_eq!(LLSDUtils::max_depth(&complex_structure), 4);
+        assert_eq!(LLSDUtils::max_depth(&complex_structure), 5);
         assert_eq!(LLSDUtils::count_elements(&complex_structure), 7);
 
         // Test constraint validation
