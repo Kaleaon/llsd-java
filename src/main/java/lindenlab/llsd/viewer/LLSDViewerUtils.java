@@ -197,6 +197,9 @@ public final class LLSDViewerUtils {
      *         {@code false} otherwise.
      */
     public static boolean compareWithTemplate(Object testLLSD, Object templateLLSD, Map<String, Object> resultLLSD) {
+        if (resultLLSD == null) {
+            throw new IllegalArgumentException("Result map cannot be null");
+        }
         return compareWithTemplateImpl(testLLSD, templateLLSD, resultLLSD, false);
     }
     
@@ -213,10 +216,15 @@ public final class LLSDViewerUtils {
      * @return {@code true} if the filtering is successful, {@code false} otherwise.
      */
     public static boolean filterWithTemplate(Object testLLSD, Object templateLLSD, Map<String, Object> resultLLSD) {
+        if (resultLLSD == null) {
+            throw new IllegalArgumentException("Result map cannot be null");
+        }
         return compareWithTemplateImpl(testLLSD, templateLLSD, resultLLSD, true);
     }
     
     private static boolean compareWithTemplateImpl(Object testObj, Object templateObj, Map<String, Object> result, boolean useWildcard) {
+        // result should not be null - validated by public methods
+        
         if (templateObj == null || "".equals(templateObj)) {
             // Undefined template matches anything
             if (testObj != null) {

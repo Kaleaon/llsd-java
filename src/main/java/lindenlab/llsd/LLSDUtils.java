@@ -8,6 +8,7 @@ package lindenlab.llsd;
 
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 /**
  * A utility class providing helper methods for common operations on LLSD data.
@@ -26,6 +27,14 @@ import java.util.stream.Collectors;
  * @see LLSD
  */
 public final class LLSDUtils {
+    
+    /**
+     * Shared UUID validation pattern for consistent UUID parsing across all parsers.
+     */
+    public static final Pattern UUID_PATTERN = Pattern.compile(
+        "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", 
+        Pattern.CASE_INSENSITIVE
+    );
     
     private LLSDUtils() {
         // Utility class - no instances

@@ -162,17 +162,27 @@ public class LLSDBinarySerializer {
             output.write(UNDEF_MARKER);
         } else {
             // Fallback to string representation
-            serializeString(value.toString(), output);
+            if (value == null) {
+                output.write(UNDEF_MARKER);
+            } else {
+                serializeString(value.toString(), output);
+            }
         }
     }
 
     /** Writes a boolean value as a single byte marker ('1' or '0'). */
-    private void serializeBoolean(Boolean value, OutputStream output) throws IOException {
+    private void serializeBoolean(Boolean value, OutputStream output) throws IOException, LLSDException {
+        if (value == null) {
+            throw new LLSDException("Cannot serialize null boolean");
+        }
         output.write(value ? TRUE_MARKER : FALSE_MARKER);
     }
 
     /** Writes an integer value with its marker and 4-byte big-endian representation. */
-    private void serializeInteger(Integer value, OutputStream output) throws IOException {
+    private void serializeInteger(Integer value, OutputStream output) throws IOException, LLSDException {
+        if (value == null) {
+            throw new LLSDException("Cannot serialize null integer");
+        }
         output.write(INTEGER_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(4).order(ByteOrder.BIG_ENDIAN);
         buffer.putInt(value);
@@ -180,7 +190,10 @@ public class LLSDBinarySerializer {
     }
 
     /** Writes a double value with its marker and 8-byte big-endian representation. */
-    private void serializeReal(Double value, OutputStream output) throws IOException {
+    private void serializeReal(Double value, OutputStream output) throws IOException, LLSDException {
+        if (value == null) {
+            throw new LLSDException("Cannot serialize null double");
+        }
         output.write(REAL_MARKER);
         ByteBuffer buffer = ByteBuffer.allocate(8).order(ByteOrder.BIG_ENDIAN);
         buffer.putDouble(value);
@@ -188,7 +201,10 @@ public class LLSDBinarySerializer {
     }
 
     /** Writes a string value with its marker, a 4-byte length prefix, and UTF-8 bytes. */
-    private void serializeString(String value, OutputStream output) throws IOException {
+    private void serializeString(String value, OutputStream output) throws IOException, LLSDException {
+        if (value == null) {
+            throw new LLSDException("Cannot serialize null string");
+        }
         output.write(STRING_MARKER);
         byte[] stringBytes = value.getBytes(StandardCharsets.UTF_8);
         writeInt32(output, stringBytes.length);

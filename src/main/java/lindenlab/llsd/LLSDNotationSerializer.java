@@ -37,13 +37,13 @@ import java.util.UUID;
  * @see <a href="http://wiki.secondlife.com/wiki/LLSD#Notation_Serialization">LLSD Notation Specification</a>
  */
 public class LLSDNotationSerializer {
-    private final DateFormat iso8601Format = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    private static final String ISO8601_PATTERN = "yyyy-MM-dd'T'HH:mm:ss'Z'";
 
     /**
      * Initializes a new instance of the {@code LLSDNotationSerializer}.
      */
     public LLSDNotationSerializer() {
-        iso8601Format.setTimeZone(TimeZone.getTimeZone("UTC"));
+        // No initialization needed - date formatters are created locally for thread safety
     }
 
     /**
@@ -99,7 +99,10 @@ public class LLSDNotationSerializer {
             writer.write(((Boolean) value) ? "1" : "0");
         } else if (value instanceof Date) {
             writer.write("d");
-            writer.write(iso8601Format.format((Date) value));
+            // Create a new DateFormat instance for thread safety
+            DateFormat dateFormat = new SimpleDateFormat(ISO8601_PATTERN);
+            dateFormat.setTimeZone(TimeZone.getTimeZone("UTC"));
+            writer.write(dateFormat.format((Date) value));
         } else if (value instanceof URI) {
             writer.write("l");
             writer.write(value.toString());
