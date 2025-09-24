@@ -16,7 +16,7 @@ describe('LLSD Binary Parser', () => {
     describe('Binary Parsing', () => {
         test('should parse binary with correct magic number', () => {
             // Create mock binary data with magic number
-            const magic = 0x6C6C73642D; // 'llsd-'
+            const magic = 0x6c6c7364; // 'llsd-'
             const data = new Uint8Array(9); // 4 bytes magic + 1 byte type + 4 bytes length
             const view = new DataView(data.buffer);
             
@@ -49,7 +49,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should parse boolean values', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const data = new Uint8Array(6);
             const view = new DataView(data.buffer);
             
@@ -63,7 +63,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should parse integer values', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const data = new Uint8Array(9);
             const view = new DataView(data.buffer);
             
@@ -77,7 +77,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should parse real values', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const data = new Uint8Array(13);
             const view = new DataView(data.buffer);
             
@@ -91,7 +91,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should parse string values', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const testString = 'Hello';
             const stringBytes = new TextEncoder().encode(testString);
             const data = new Uint8Array(9 + stringBytes.length);
@@ -108,7 +108,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should parse UUID values', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const data = new Uint8Array(21); // Magic + type + 16 bytes UUID
             const view = new DataView(data.buffer);
             
@@ -127,7 +127,7 @@ describe('LLSD Binary Parser', () => {
         });
 
         test('should handle truncated data', () => {
-            const magic = 0x6C6C73642D;
+            const magic = 0x6c6c7364;
             const data = new Uint8Array(6); // Too short for integer
             const view = new DataView(data.buffer);
             
@@ -156,7 +156,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(5); // Magic (4) + type (1)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(0); // Undefined type
         });
 
@@ -167,7 +167,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(6); // Magic (4) + type (1) + value (1)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(1); // Boolean type
             expect(view.getUint8(5)).toBe(1); // True value
         });
@@ -179,7 +179,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(9); // Magic (4) + type (1) + value (4)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(2); // Integer type
             expect(view.getInt32(5, false)).toBe(42); // Integer value
         });
@@ -191,7 +191,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(13); // Magic (4) + type (1) + value (8)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(3); // Real type
             expect(view.getFloat64(5, false)).toBeCloseTo(3.14159, 5);
         });
@@ -205,7 +205,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(expectedLength);
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(4); // String type
             expect(view.getUint32(5, false)).toBe(5); // String length
             
@@ -222,7 +222,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(21); // Magic (4) + type (1) + UUID (16)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(5); // UUID type
             
             // Check UUID bytes
@@ -242,7 +242,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(13); // Magic (4) + type (1) + timestamp (8)
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(6); // Date type
             
             const timestamp = view.getFloat64(5, false);
@@ -258,7 +258,7 @@ describe('LLSD Binary Serializer', () => {
             expect(data.length).toBe(expectedLength);
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(8); // Binary type
             expect(view.getUint32(5, false)).toBe(5); // Binary length
             
@@ -272,7 +272,7 @@ describe('LLSD Binary Serializer', () => {
             const data = serializer.serialize(llsd);
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(9); // Array type
             expect(view.getUint32(5, false)).toBe(2); // Array length
             
@@ -286,7 +286,7 @@ describe('LLSD Binary Serializer', () => {
             const data = serializer.serialize(llsd);
             
             const view = new DataView(data.buffer);
-            expect(view.getUint32(0, false)).toBe(0x6C6C73642D); // Magic
+            expect(view.getUint32(0, false)).toBe(0x6c6c7364); // Magic
             expect(view.getUint8(4)).toBe(10); // Map type
             expect(view.getUint32(5, false)).toBe(2); // Map size
             

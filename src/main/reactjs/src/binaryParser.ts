@@ -8,7 +8,7 @@
 import { LLSD, LLSDValue, LLSDMap, LLSDArray, LLSDException } from './types';
 
 export class LLSDBinaryParser {
-    private static readonly LLSD_BINARY_MAGIC = 0x6C6C73642D; // 'llsd-'
+    private static readonly LLSD_BINARY_MAGIC = 0x6c6c7364; // 'llsd'
     private data: Uint8Array;
     private position: number;
 

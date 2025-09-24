@@ -6,7 +6,66 @@
  */
 
 import { LLSDValue, LLSDMap, LLSDArray, LLSDException, LLSDUtils } from '../types';
-import { SecondLifeLLSDUtils } from '../secondlife/SecondLifeLLSDUtils';
+import { SecondLifeLLSDUtils, SLValidationRules, SLValidationResult } from '../secondlife/SecondLifeLLSDUtils';
+
+/**
+ * Firestorm-specific validation rules
+ */
+export class FSValidationRules extends SLValidationRules {
+    requiresFSVersion: boolean = false;
+    minFSVersion: string = '';
+    requiresRLV: boolean = false;
+    requiresBridge: boolean = false;
+
+    requireFSVersion(minVersion: string): this {
+        this.requiresFSVersion = true;
+        this.minFSVersion = minVersion;
+        return this;
+    }
+
+    requireRLV(): this {
+        this.requiresRLV = true;
+        return this;
+    }
+
+    requireBridge(): this {
+        this.requiresBridge = true;
+        return this;
+    }
+}
+
+/**
+ * Firestorm-specific validation result
+ */
+export class FSValidationResult extends SLValidationResult {
+    private firestormVersion: string = '';
+    private rlvEnabled: boolean = false;
+    private bridgeEnabled: boolean = false;
+
+    setFirestormVersion(version: string): void {
+        this.firestormVersion = version;
+    }
+
+    setRLVEnabled(enabled: boolean): void {
+        this.rlvEnabled = enabled;
+    }
+
+    setBridgeEnabled(enabled: boolean): void {
+        this.bridgeEnabled = enabled;
+    }
+
+    getFirestormVersion(): string {
+        return this.firestormVersion;
+    }
+
+    isRLVEnabled(): boolean {
+        return this.rlvEnabled;
+    }
+
+    isBridgeEnabled(): boolean {
+        return this.bridgeEnabled;
+    }
+}
 
 export class FirestormLLSDUtils {
     /**
@@ -168,69 +227,19 @@ export class FirestormLLSDUtils {
     }
 
     /**
-     * Firestorm-specific validation rules extending base SL rules
-     */
-    static FSValidationRules = class extends SecondLifeLLSDUtils.ValidationRules {
-        requiresFSVersion: boolean = false;
-        minFSVersion: string = '';
-        requiresRLV: boolean = false;
-        requiresBridge: boolean = false;
-
-        requireFSVersion(minVersion: string): FirestormLLSDUtils.FSValidationRules {
-            this.requiresFSVersion = true;
-            this.minFSVersion = minVersion;
-            return this;
-        }
-
-        requireRLV(): FirestormLLSDUtils.FSValidationRules {
-            this.requiresRLV = true;
-            return this;
-        }
-
-        requireBridge(): FirestormLLSDUtils.FSValidationRules {
-            this.requiresBridge = true;
-            return this;
-        }
-
-        getBaseRules(): SecondLifeLLSDUtils.ValidationRules {
-            const base = new SecondLifeLLSDUtils.ValidationRules();
-            if (this.requiresMap) base.requireMap();
-            if (this.requiresArray) base.requireArray();
-            for (const field of this.requiredFields) {
-                const type = this.fieldTypes.get(field);
-                base.requireField(field, type);
-            }
-            return base;
-        }
-    };
-
-    /**
-     * Firestorm validation result extending base SL result
-     */
-    static FSValidationResult = class extends SecondLifeLLSDUtils.ValidationResult {
-        addErrors(errors: string[]): void {
-            for (const error of errors) {
-                this.addError(error);
-            }
-        }
-
-        addWarnings(warnings: string[]): void {
-            for (const warning of warnings) {
-                this.addWarning(warning);
-            }
-        }
-    };
-
-    /**
      * Validate Firestorm-specific LLSD structure
      */
-    static validateFSStructure(llsdData: LLSDValue, rules: FirestormLLSDUtils.FSValidationRules): FirestormLLSDUtils.FSValidationResult {
-        const result = new FirestormLLSDUtils.FSValidationResult();
+    static validateFSStructure(llsdData: LLSDValue, rules: FSValidationRules): FSValidationResult {
+        const result = new FSValidationResult();
 
         // Use base SL validation first
-        const baseResult = SecondLifeLLSDUtils.validateSLStructure(llsdData, rules.getBaseRules());
-        result.addErrors(baseResult.getErrors());
-        result.addWarnings(baseResult.getWarnings());
+        const baseResult = SecondLifeLLSDUtils.validateSLStructure(llsdData, rules);
+        for (const error of baseResult.getErrors()) {
+            result.addError(error);
+        }
+        for (const warning of baseResult.getWarnings()) {
+            result.addWarning(warning);
+        }
 
         if (!baseResult.isValid()) {
             return result; // Don't continue if base validation failed

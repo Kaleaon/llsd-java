@@ -30,7 +30,24 @@ export class LLSDXMLParser {
      */
     parse(xmlString: string): LLSD {
         try {
+            // Basic malformed XML check
+            if (!xmlString || xmlString.trim() === '') {
+                throw new LLSDException('Empty XML string');
+            }
+            
             const doc = this.parser.parseFromString(xmlString, 'text/xml');
+            
+            // Check for parsing errors
+            const parseError = doc.getElementsByTagName('parsererror')[0];
+            if (parseError) {
+                throw new LLSDException(`XML parsing error: ${parseError.textContent}`);
+            }
+            
+            // Check if document is empty or malformed
+            if (!doc.documentElement) {
+                throw new LLSDException('Malformed XML document: no document element');
+            }
+            
             const llsdElement = doc.getElementsByTagName('llsd')[0];
             
             if (!llsdElement) {
