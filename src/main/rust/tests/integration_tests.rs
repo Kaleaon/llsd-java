@@ -7,7 +7,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::*;
+    use llsd::*;
     use std::collections::HashMap;
     use uuid::uuid;
     use chrono::{DateTime, Utc, TimeZone};
@@ -284,7 +284,7 @@ mod tests {
             let mut map = HashMap::new();
             map.insert("string".to_string(), LLSDValue::String("unicode: 你好世界".to_string()));
             map.insert("integer".to_string(), LLSDValue::Integer(i32::MIN));
-            map.insert("real".to_string(), LLSDValue::Real(f64::consts::PI));
+            map.insert("real".to_string(), LLSDValue::Real(std::f64::consts::PI));
             map.insert("boolean".to_string(), LLSDValue::Boolean(false));
             map.insert("uuid".to_string(), LLSDValue::UUID(uuid!("550e8400-e29b-41d4-a716-446655440000")));
             map.insert("date".to_string(), LLSDValue::Date(Utc.timestamp_opt(1609459200, 500_000_000).single().unwrap()));
