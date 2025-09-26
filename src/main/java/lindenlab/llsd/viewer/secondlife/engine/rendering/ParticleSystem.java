@@ -25,76 +25,123 @@ import java.util.UUID;
  */
 public class ParticleSystem {
     
+    /** A unique identifier for this particle system. */
     private final UUID systemId;
+    /** The name of the particle system. */
     private String name;
+    /** If false, the system will not be updated or rendered. */
     private boolean enabled;
+    /** The current age of the particle system in seconds. */
     private double systemAge;
+    /** The maximum age of the system in seconds. After this time, it will stop emitting. -1 for infinite. */
     private double maxAge;
     
-    // Emitter properties
+    /** The emitter responsible for creating new particles. */
     private ParticleEmitter emitter;
+    /** The position of the emitter in world or local space. */
     private Vector3 emitterPosition;
+    /** The rotation of the emitter. */
     private Quaternion emitterRotation;
+    /** The scale of the emitter volume. */
     private Vector3 emitterScale;
     
-    // Global system properties
-    private Vector3 globalAcceleration; // Gravity, wind, etc.
+    /** A global acceleration vector applied to all particles (e.g., gravity). */
+    private Vector3 globalAcceleration;
+    /** A damping factor applied to all particle velocities each frame. */
     private double globalDamping;
+    /** The bounding box that contains the particle system, used for culling. */
     private BoundingBox boundingBox;
+    /** If true, particle positions are relative to the emitter's transform. */
     private boolean useLocalCoordinates;
     
-    // Rendering properties
+    /** The rendering mode for the particles (e.g., BILLBOARD). */
     private RenderMode renderMode;
+    /** The blend mode used for rendering particles (e.g., ALPHA, ADDITIVE). */
     private BlendMode blendMode;
+    /** The UUID of the texture to apply to the particles. */
     private UUID texture;
+    /** If true, particles will write to the depth buffer. */
     private boolean depthWrite;
+    /** If true, particles will be depth-tested against the scene. */
     private boolean depthTest;
+    /** The sorting mode for transparent particles. */
     private SortMode sortMode;
     
-    // Performance settings
+    /** The maximum number of active particles allowed in the system. */
     private int maxParticles;
+    /** If true, the renderer can batch particle drawing for better performance. */
     private boolean useBatching;
+    /** If true, particle simulation is offloaded to the GPU. */
     private boolean useGPUSimulation;
-    private int simulationQuality; // 0-3, higher = more accurate
+    /** The quality level of the simulation (0=low, 3=high). */
+    private int simulationQuality;
     
-    // Active particles
+    /** A queue of currently active (living) particles. */
     private final Queue<Particle> activeParticles;
+    /** A pool of dead particles that can be recycled to create new ones. */
     private final Queue<Particle> deadParticles;
     
     /**
-     * Particle emitter types and properties.
+     * Defines the shape, rate, and properties of particle emission.
+     * <p>
+     * The emitter is responsible for generating new particles, defining their
+     * initial position, velocity, and other properties based on its configuration.
      */
     public static class ParticleEmitter {
+        /** The type of the emitter (e.g., POINT, BOX, SPHERE). */
         private EmitterType type;
+        /** The shape of the emission area (e.g., VOLUME, SURFACE). */
         private EmitterShape shape;
-        private Vector3 size; // Box size, sphere radius, etc.
+        /** The dimensions of the emitter shape (e.g., box size, sphere radius). */
+        private Vector3 size;
         
-        // Emission properties
-        private double emissionRate; // Particles per second
-        private double burstCount; // Particles per burst
-        private double burstInterval; // Seconds between bursts
-        private boolean continuous; // Continuous or burst emission
+        /** The number of particles to emit per second in continuous mode. */
+        private double emissionRate;
+        /** The number of particles to emit in a single burst. */
+        private double burstCount;
+        /** The time interval in seconds between bursts. */
+        private double burstInterval;
+        /** If true, emission is continuous; if false, it occurs in bursts. */
+        private boolean continuous;
         
-        // Particle initial properties
+        /** A template defining the initial properties of newly created particles. */
         private ParticleProperties particleTemplate;
+        /** A set of variations to apply to the initial particle properties. */
         private RandomVariation variation;
         
+        /** An enumeration of the types of emitter shapes. */
         public enum EmitterType {
+            /** Emits from a single point. */
             POINT,
+            /** Emits from a box shape. */
             BOX,
+            /** Emits from a sphere shape. */
             SPHERE,
+            /** Emits from a cone shape. */
             CONE,
+            /** Emits from a cylinder shape. */
             CYLINDER,
+            /** Emits from the vertices of a mesh. */
             MESH,
-            TEXTURE // Emit from texture brightness
+            /** Emits from a texture, based on pixel brightness. */
+            TEXTURE
         }
         
+        /** An enumeration of where on the emitter's shape particles are generated. */
         public enum EmitterShape {
-            VOLUME,    // Emit from within volume
-            SURFACE,   // Emit from surface
-            EDGE       // Emit from edges
+            /** Emit from anywhere within the emitter's volume. */
+            VOLUME,
+            /** Emit from the surface of the emitter's shape. */
+            SURFACE,
+            /** Emit from the edges of the emitter's shape. */
+            EDGE
         }
         
+        /**
+         * Constructs a new {@code ParticleEmitter} of a specified type.
+         *
+         * @param type The type of emitter to create.
+         */
         public ParticleEmitter(EmitterType type) {
             this.type = type;
             this.shape = EmitterShape.VOLUME;
@@ -107,36 +154,56 @@ public class ParticleSystem {
             this.variation = new RandomVariation();
         }
         
-        // Getters and setters
+        /** @return The type of the emitter. */
         public EmitterType getType() { return type; }
+        /** @param type The new type for the emitter. */
         public void setType(EmitterType type) { this.type = type; }
         
+        /** @return The shape of the emission area. */
         public EmitterShape getShape() { return shape; }
+        /** @param shape The new shape for the emission area. */
         public void setShape(EmitterShape shape) { this.shape = shape; }
         
+        /** @return The dimensions of the emitter shape. */
         public Vector3 getSize() { return size; }
+        /** @param size The new dimensions for the emitter shape. */
         public void setSize(Vector3 size) { this.size = size; }
         
+        /** @return The number of particles to emit per second. */
         public double getEmissionRate() { return emissionRate; }
+        /** @param emissionRate The new emission rate, clamped to be non-negative. */
         public void setEmissionRate(double emissionRate) { this.emissionRate = Math.max(0.0, emissionRate); }
         
+        /** @return The number of particles to emit in a single burst. */
         public double getBurstCount() { return burstCount; }
+        /** @param burstCount The new burst count, must be at least 1.0. */
         public void setBurstCount(double burstCount) { this.burstCount = Math.max(1.0, burstCount); }
         
+        /** @return The time interval in seconds between bursts. */
         public double getBurstInterval() { return burstInterval; }
+        /** @param burstInterval The new burst interval, must be positive. */
         public void setBurstInterval(double burstInterval) { this.burstInterval = Math.max(0.01, burstInterval); }
         
+        /** @return True if emission is continuous, false if it occurs in bursts. */
         public boolean isContinuous() { return continuous; }
+        /** @param continuous The new emission mode. */
         public void setContinuous(boolean continuous) { this.continuous = continuous; }
         
+        /** @return The template for initial particle properties. */
         public ParticleProperties getParticleTemplate() { return particleTemplate; }
+        /** @param particleTemplate The new template for particle properties. */
         public void setParticleTemplate(ParticleProperties particleTemplate) { this.particleTemplate = particleTemplate; }
         
+        /** @return The set of random variations for particle properties. */
         public RandomVariation getVariation() { return variation; }
+        /** @param variation The new set of random variations. */
         public void setVariation(RandomVariation variation) { this.variation = variation; }
         
         /**
-         * Generate random position within emitter volume.
+         * Generates a random position for a new particle within the emitter's volume or on its surface.
+         *
+         * @param random A {@link Random} instance to use for generation.
+         * @return A {@link Vector3} representing the new particle's initial position relative to the emitter.
          */
         public Vector3 generatePosition(Random random) {
             switch (type) {
@@ -219,7 +286,11 @@ public class ParticleSystem {
         }
         
         /**
-         * Generate initial velocity based on emitter type.
+         * Generates an initial velocity for a new particle based on the emitter's type and properties.
+         *
+         * @param position The initial position of the particle, which can influence the velocity direction (e.g., for sphere emitters).
+         * @param random A {@link Random} instance to use for generation.
+         * @return A {@link Vector3} representing the new particle's initial velocity.
          */
         public Vector3 generateVelocity(Vector3 position, Random random) {
             Vector3 direction = Vector3.ZERO;
@@ -273,33 +344,53 @@ public class ParticleSystem {
     }
     
     /**
-     * Individual particle properties.
+     * A container for all the physical and visual properties of a single particle.
      */
     public static class ParticleProperties {
-        public double life; // Total lifetime in seconds
-        public double age; // Current age
+        /** The total lifetime of the particle in seconds. */
+        public double life;
+        /** The current age of the particle in seconds. */
+        public double age;
         
+        /** The position of the particle. */
         public Vector3 position;
+        /** The velocity of the particle. */
         public Vector3 velocity;
+        /** The acceleration of the particle. */
         public Vector3 acceleration;
         
+        /** The color of the particle. */
         public Vector3 color;
+        /** The alpha (transparency) of the particle. */
         public double alpha;
+        /** The size (scale) of the particle. */
         public double size;
-        public double rotation; // In radians
+        /** The rotation of the particle in radians. */
+        public double rotation;
+        /** The angular velocity of the particle in radians per second. */
         public double angularVelocity;
         
+        /** The initial speed of the particle upon emission. */
         public double initialSpeed;
+        /** The mass of the particle, used in physics calculations. */
         public double mass;
-        public double drag; // Air resistance
-        public double bounce; // Collision restitution
+        /** The drag coefficient, representing air resistance. */
+        public double drag;
+        /** The coefficient of restitution, determining how much the particle bounces on collision. */
+        public double bounce;
         
-        // Animation properties
+        /** The total number of frames in the particle's texture animation. */
         public int textureAnimFrames;
+        /** The current frame of the texture animation. */
         public int currentFrame;
+        /** The time elapsed on the current animation frame. */
         public double frameTime;
+        /** The playback rate of the texture animation in frames per second. */
         public double frameRate;
         
+        /**
+         * Constructs a new {@code ParticleProperties} object with default values.
+         */
         public ParticleProperties() {
             this.life = 5.0;
             this.age = 0.0;
@@ -325,27 +416,47 @@ public class ParticleSystem {
             this.frameRate = 1.0;
         }
         
+        /**
+         * Checks if the particle is still alive (i.e., its age is less than its total lifetime).
+         *
+         * @return {@code true} if the particle is alive, {@code false} otherwise.
+         */
         public boolean isAlive() {
             return age < life;
         }
         
+        /**
+         * Gets the normalized age of the particle, a value from 0.0 to 1.0.
+         *
+         * @return The particle's age as a fraction of its total lifetime.
+         */
         public double getNormalizedAge() {
             return life > 0 ? age / life : 1.0;
         }
     }
     
     /**
-     * Random variation settings for particle properties.
+     * Defines the amount of random variation to apply to the initial properties of new particles.
      */
     public static class RandomVariation {
+        /** The random variation to apply to particle lifetime. */
         public double lifeVariation;
+        /** The random variation to apply to initial particle speed. */
         public double speedVariation;
+        /** The random variation to apply to initial particle color. */
         public Vector3 colorVariation;
+        /** The random variation to apply to initial particle alpha. */
         public double alphaVariation;
+        /** The random variation to apply to initial particle size. */
         public double sizeVariation;
+        /** The random variation to apply to initial particle rotation. */
         public double rotationVariation;
+        /** The random variation to apply to initial particle angular velocity. */
         public double angularVelocityVariation;
         
+        /**
+         * Constructs a new {@code RandomVariation} object with all variations set to zero.
+         */
         public RandomVariation() {
             this.lifeVariation = 0.0;
             this.speedVariation = 0.0;
@@ -358,16 +469,25 @@ public class ParticleSystem {
     }
     
     /**
-     * Individual particle instance.
+     * Represents a single particle instance in the system.
+     * <p>
+     * This class holds the particle's current properties and references to
+     * animation curves that can modify its properties over its lifetime.
      */
     public static class Particle {
+        /** The current properties of the particle. */
         public ParticleProperties properties;
         
-        // Animation curves over lifetime
+        /** An animation curve for the particle's size over its lifetime. */
         public AnimationCurve sizeCurve;
+        /** An animation curve for the particle's color over its lifetime. */
         public AnimationCurve colorCurve;
+        /** An animation curve for the particle's alpha over its lifetime. */
         public AnimationCurve alphaCurve;
         
+        /**
+         * Constructs a new {@code Particle} with default properties.
+         */
         public Particle() {
             this.properties = new ParticleProperties();
         }
@@ -395,6 +515,13 @@ public class ParticleSystem {
             to.frameRate = from.frameRate;
         }
         
+        /**
+         * Updates the particle's state over a given time step.
+         *
+         * @param deltaTime The time elapsed since the last update, in seconds.
+         * @param globalAcceleration A global acceleration vector to apply to the particle.
+         * @param globalDamping A global damping factor to apply to the particle's velocity.
+         */
         public void update(double deltaTime, Vector3 globalAcceleration, double globalDamping) {
             if (!properties.isAlive()) return;
             
@@ -444,26 +571,51 @@ public class ParticleSystem {
     }
     
     /**
-     * Simple animation curve for property interpolation over particle lifetime.
+     * Defines a curve that interpolates a value over time, used for animating particle properties.
+     * <p>
+     * An {@code AnimationCurve} is defined by a series of {@link KeyFrame} objects.
      */
     public static class AnimationCurve {
         private final List<KeyFrame> keyFrames;
         
+        /**
+         * Represents a single point on an animation curve.
+         */
         public static class KeyFrame {
-            public double time; // 0.0 to 1.0 (normalized lifetime)
+            /** The time of the keyframe, normalized from 0.0 to 1.0. */
+            public double time;
+            /** The value of the curve at this keyframe. */
             public double value;
+            /** The interpolation mode to use between this keyframe and the next. */
             public InterpolationMode interpolation;
             
+            /** An enumeration of the interpolation modes between keyframes. */
             public enum InterpolationMode {
+                /** Linear interpolation. */
                 LINEAR,
+                /** Cubic Hermite spline interpolation (simplified). */
                 CUBIC,
+                /** No interpolation; the value holds until the next keyframe. */
                 STEP
             }
             
+            /**
+             * Constructs a new {@code KeyFrame} with linear interpolation.
+             *
+             * @param time The time of the keyframe (0.0 to 1.0).
+             * @param value The value at this time.
+             */
             public KeyFrame(double time, double value) {
                 this(time, value, InterpolationMode.LINEAR);
             }
             
+            /**
+             * Constructs a new {@code KeyFrame} with a specified interpolation mode.
+             *
+             * @param time The time of the keyframe (0.0 to 1.0).
+             * @param value The value at this time.
+             * @param interpolation The interpolation mode.
+             */
             public KeyFrame(double time, double value, InterpolationMode interpolation) {
                 this.time = time;
                 this.value = value;
@@ -471,19 +623,39 @@ public class ParticleSystem {
             }
         }
         
+        /**
+         * Constructs a new, empty {@code AnimationCurve}.
+         */
         public AnimationCurve() {
             this.keyFrames = new ArrayList<>();
         }
         
+        /**
+         * Adds a new keyframe to the curve.
+         *
+         * @param time The time of the keyframe (0.0 to 1.0).
+         * @param value The value at this time.
+         */
         public void addKeyFrame(double time, double value) {
             addKeyFrame(new KeyFrame(time, value));
         }
         
+        /**
+         * Adds a pre-constructed keyframe to the curve.
+         *
+         * @param keyFrame The {@link KeyFrame} to add.
+         */
         public void addKeyFrame(KeyFrame keyFrame) {
             keyFrames.add(keyFrame);
             keyFrames.sort(Comparator.comparing(k -> k.time));
         }
         
+        /**
+         * Evaluates the curve at a specific time.
+         *
+         * @param time The time at which to evaluate the curve, normalized from 0.0 to 1.0.
+         * @return The interpolated value of the curve at the given time.
+         */
         public double evaluate(double time) {
             if (keyFrames.isEmpty()) return 1.0;
             if (keyFrames.size() == 1) return keyFrames.get(0).value;
@@ -526,41 +698,62 @@ public class ParticleSystem {
         }
     }
     
-    /**
-     * Rendering and blend modes.
-     */
+    /** An enumeration of the rendering modes for particles. */
     public enum RenderMode {
-        BILLBOARD,          // Always face camera
-        VELOCITY_ALIGNED,   // Align with velocity direction  
-        HORIZONTAL,         // Horizontal billboard
-        VERTICAL,           // Vertical billboard
-        MESH,              // Use custom mesh
-        STREAKS            // Velocity streaks
+        /** Particles are rendered as billboards that always face the camera. */
+        BILLBOARD,
+        /** Particles are stretched and aligned with their velocity vector. */
+        VELOCITY_ALIGNED,
+        /** Particles are rendered as billboards constrained to the horizontal plane. */
+        HORIZONTAL,
+        /** Particles are rendered as billboards constrained to a vertical axis. */
+        VERTICAL,
+        /** Particles are rendered as instances of a 3D mesh. */
+        MESH,
+        /** Particles are rendered as streaks based on their velocity. */
+        STREAKS
     }
     
+    /** An enumeration of the blend modes for transparent particles. */
     public enum BlendMode {
-        ALPHA,             // Standard alpha blending
-        ADDITIVE,          // Additive blending
-        MULTIPLY,          // Multiplicative blending
-        SUBTRACT,          // Subtractive blending
-        SCREEN             // Screen blending
+        /** Standard alpha blending. */
+        ALPHA,
+        /** Additive blending, useful for fire and light effects. */
+        ADDITIVE,
+        /** Multiplicative blending. */
+        MULTIPLY,
+        /** Subtractive blending. */
+        SUBTRACT,
+        /** Screen blending. */
+        SCREEN
     }
     
+    /** An enumeration of the sorting modes for transparent particles. */
     public enum SortMode {
-        NONE,              // No sorting
-        BACK_TO_FRONT,     // Sort by distance (far to near)
-        FRONT_TO_BACK,     // Sort by distance (near to far)
-        BY_AGE,            // Sort by particle age
-        BY_SIZE            // Sort by particle size
+        /** No sorting is performed. */
+        NONE,
+        /** Particles are sorted from back to front based on distance from the camera. */
+        BACK_TO_FRONT,
+        /** Particles are sorted from front to back. */
+        FRONT_TO_BACK,
+        /** Particles are sorted by their age. */
+        BY_AGE,
+        /** Particles are sorted by their size. */
+        BY_SIZE
     }
     
     /**
-     * Bounding box for particle system.
+     * An axis-aligned bounding box (AABB) for the particle system, used for culling.
      */
     public static class BoundingBox {
+        /** The minimum corner of the box. */
         public Vector3 min;
+        /** The maximum corner of the box. */
         public Vector3 max;
         
+        /**
+         * Constructs a new {@code BoundingBox} with default values.
+         */
         public BoundingBox() {
             this.min = new Vector3(-10, -10, -10);
             this.max = new Vector3(10, 10, 10);
@@ -587,7 +780,9 @@ public class ParticleSystem {
     }
     
     /**
-     * Create a new particle system.
+     * Constructs a new {@code ParticleSystem} with a given name and default settings.
+     *
+     * @param name The name of the particle system.
      */
     public ParticleSystem(String name) {
         this.systemId = UUID.randomUUID();
@@ -621,88 +816,137 @@ public class ParticleSystem {
         this.deadParticles = new ConcurrentLinkedQueue<>();
     }
     
-    // Getters and setters
+    /** @return The unique identifier for this particle system. */
     public UUID getSystemId() { return systemId; }
+    /** @return The name of the particle system. */
     public String getName() { return name; }
+    /** @param name The new name for the particle system. */
     public void setName(String name) { this.name = name; }
     
+    /** @return True if the system is enabled. */
     public boolean isEnabled() { return enabled; }
+    /** @param enabled The new enabled state for the system. */
     public void setEnabled(boolean enabled) { this.enabled = enabled; }
     
+    /** @return The current age of the system in seconds. */
     public double getSystemAge() { return systemAge; }
+    /** @return The maximum age of the system in seconds. */
     public double getMaxAge() { return maxAge; }
+    /** @param maxAge The new maximum age for the system. */
     public void setMaxAge(double maxAge) { this.maxAge = maxAge; }
     
+    /** @return The particle emitter for this system. */
     public ParticleEmitter getEmitter() { return emitter; }
+    /** @param emitter The new particle emitter for this system. */
     public void setEmitter(ParticleEmitter emitter) { this.emitter = emitter; }
     
+    /** @return The position of the emitter. */
     public Vector3 getEmitterPosition() { return emitterPosition; }
+    /** @param emitterPosition The new position for the emitter. */
     public void setEmitterPosition(Vector3 emitterPosition) { this.emitterPosition = emitterPosition; }
     
+    /** @return The rotation of the emitter. */
     public Quaternion getEmitterRotation() { return emitterRotation; }
+    /** @param emitterRotation The new rotation for the emitter. */
     public void setEmitterRotation(Quaternion emitterRotation) { this.emitterRotation = emitterRotation; }
     
+    /** @return The scale of the emitter. */
     public Vector3 getEmitterScale() { return emitterScale; }
+    /** @param emitterScale The new scale for the emitter. */
     public void setEmitterScale(Vector3 emitterScale) { this.emitterScale = emitterScale; }
     
+    /** @return The global acceleration applied to all particles. */
     public Vector3 getGlobalAcceleration() { return globalAcceleration; }
+    /** @param globalAcceleration The new global acceleration vector. */
     public void setGlobalAcceleration(Vector3 globalAcceleration) { this.globalAcceleration = globalAcceleration; }
     
+    /** @return The global damping factor. */
     public double getGlobalDamping() { return globalDamping; }
+    /** @param globalDamping The new global damping factor, clamped to the range [0, 1]. */
     public void setGlobalDamping(double globalDamping) { this.globalDamping = Math.max(0.0, Math.min(1.0, globalDamping)); }
     
+    /** @return The bounding box of the system. */
     public BoundingBox getBoundingBox() { return boundingBox; }
+    /** @param boundingBox The new bounding box for the system. */
     public void setBoundingBox(BoundingBox boundingBox) { this.boundingBox = boundingBox; }
     
+    /** @return True if particles use local coordinates relative to the emitter. */
     public boolean isUseLocalCoordinates() { return useLocalCoordinates; }
+    /** @param useLocalCoordinates The new coordinate system mode. */
     public void setUseLocalCoordinates(boolean useLocalCoordinates) { this.useLocalCoordinates = useLocalCoordinates; }
     
+    /** @return The rendering mode for the particles. */
     public RenderMode getRenderMode() { return renderMode; }
+    /** @param renderMode The new rendering mode for the particles. */
     public void setRenderMode(RenderMode renderMode) { this.renderMode = renderMode; }
     
+    /** @return The blend mode for the particles. */
     public BlendMode getBlendMode() { return blendMode; }
+    /** @param blendMode The new blend mode for the particles. */
     public void setBlendMode(BlendMode blendMode) { this.blendMode = blendMode; }
     
+    /** @return The UUID of the texture used by the particles. */
     public UUID getTexture() { return texture; }
+    /** @param texture The new texture UUID for the particles. */
     public void setTexture(UUID texture) { this.texture = texture; }
     
+    /** @return True if particles write to the depth buffer. */
     public boolean isDepthWrite() { return depthWrite; }
+    /** @param depthWrite The new depth write state. */
     public void setDepthWrite(boolean depthWrite) { this.depthWrite = depthWrite; }
     
+    /** @return True if particles are depth-tested. */
     public boolean isDepthTest() { return depthTest; }
+    /** @param depthTest The new depth test state. */
     public void setDepthTest(boolean depthTest) { this.depthTest = depthTest; }
     
+    /** @return The sorting mode for transparent particles. */
     public SortMode getSortMode() { return sortMode; }
+    /** @param sortMode The new sorting mode. */
     public void setSortMode(SortMode sortMode) { this.sortMode = sortMode; }
     
+    /** @return The maximum number of active particles. */
     public int getMaxParticles() { return maxParticles; }
+    /** @param maxParticles The new maximum number of particles, must be at least 1. */
     public void setMaxParticles(int maxParticles) { this.maxParticles = Math.max(1, maxParticles); }
     
+    /** @return True if particle rendering is batched. */
     public boolean isUseBatching() { return useBatching; }
+    /** @param useBatching The new batching state. */
     public void setUseBatching(boolean useBatching) { this.useBatching = useBatching; }
     
+    /** @return True if particle simulation is performed on the GPU. */
     public boolean isUseGPUSimulation() { return useGPUSimulation; }
+    /** @param useGPUSimulation The new GPU simulation state. */
     public void setUseGPUSimulation(boolean useGPUSimulation) { this.useGPUSimulation = useGPUSimulation; }
     
+    /** @return The quality level of the simulation. */
     public int getSimulationQuality() { return simulationQuality; }
+    /** @param simulationQuality The new simulation quality level, clamped to the range [0, 3]. */
     public void setSimulationQuality(int simulationQuality) { this.simulationQuality = Math.max(0, Math.min(3, simulationQuality)); }
     
     /**
-     * Get current number of active particles.
+     * Gets the current number of active particles in the system.
+     *
+     * @return The number of active particles.
      */
     public int getActiveParticleCount() {
         return activeParticles.size();
     }
     
     /**
-     * Check if system has expired.
+     * Checks if the particle system has exceeded its maximum lifetime.
+     *
+     * @return {@code true} if the system has expired, {@code false} otherwise.
      */
     public boolean hasExpired() {
         return maxAge > 0 && systemAge >= maxAge;
     }
     
     /**
-     * Update particle system.
+     * Updates the entire particle system, including emitting new particles and updating existing ones.
+     *
+     * @param deltaTime The time elapsed since the last update, in seconds.
      */
     public void update(double deltaTime) {
         if (!enabled || hasExpired()) return;
@@ -846,14 +1090,16 @@ public class ParticleSystem {
     }
     
     /**
-     * Get all active particles (for rendering).
+     * Gets a collection of all active particles, suitable for rendering.
+     *
+     * @return A new {@link Collection} containing the active particles.
      */
     public Collection<Particle> getActiveParticles() {
         return new ArrayList<>(activeParticles);
     }
     
     /**
-     * Clear all particles.
+     * Clears all active particles from the system, returning them to the pool.
      */
     public void clear() {
         while (!activeParticles.isEmpty()) {
@@ -862,7 +1108,7 @@ public class ParticleSystem {
     }
     
     /**
-     * Reset system age.
+     * Resets the particle system to its initial state, clearing all particles and resetting its age.
      */
     public void reset() {
         clear();
@@ -870,7 +1116,9 @@ public class ParticleSystem {
     }
     
     /**
-     * Create LLSD representation of the particle system.
+     * Converts this particle system's configuration into an LLSD map representation.
+     *
+     * @return A {@link Map} suitable for serialization, representing the particle system's settings.
      */
     public Map<String, Object> toLLSD() {
         Map<String, Object> systemData = new HashMap<>();

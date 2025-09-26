@@ -21,14 +21,18 @@ import java.util.*;
  */
 public class TextureTransform {
     
-    // Transform properties
-    private Vector3 offset;    // UV offset (u, v, 0)
-    private Vector3 scale;     // UV scale (u, v, 1)  
-    private double rotation;   // Rotation in radians around texture center
-    private int texCoord;      // Texture coordinate set index
+    /** The texture coordinate offset (u, v). */
+    private Vector3 offset;
+    /** The texture coordinate scale (u, v). */
+    private Vector3 scale;
+    /** The rotation of the texture coordinates in radians. */
+    private double rotation;
+    /** The index of the texture coordinate set to be transformed. */
+    private int texCoord;
     
     /**
-     * Default constructor with identity transform.
+     * Constructs a new {@code TextureTransform} with default identity values
+     * (no offset, scale of 1, no rotation).
      */
     public TextureTransform() {
         this.offset = Vector3.ZERO;
@@ -38,7 +42,10 @@ public class TextureTransform {
     }
     
     /**
-     * Constructor with offset and scale.
+     * Constructs a new {@code TextureTransform} with the specified offset and scale.
+     *
+     * @param offset The texture coordinate offset.
+     * @param scale The texture coordinate scale.
      */
     public TextureTransform(Vector3 offset, Vector3 scale) {
         this.offset = offset != null ? offset : Vector3.ZERO;
@@ -48,7 +55,12 @@ public class TextureTransform {
     }
     
     /**
-     * Constructor with all parameters.
+     * Constructs a new {@code TextureTransform} with all parameters.
+     *
+     * @param offset The texture coordinate offset.
+     * @param scale The texture coordinate scale.
+     * @param rotation The rotation in radians.
+     * @param texCoord The texture coordinate set index.
      */
     public TextureTransform(Vector3 offset, Vector3 scale, double rotation, int texCoord) {
         this.offset = offset != null ? offset : Vector3.ZERO;
@@ -58,7 +70,12 @@ public class TextureTransform {
     }
     
     /**
-     * Constructor for 2D transforms.
+     * Constructs a new {@code TextureTransform} from 2D components.
+     *
+     * @param offsetU The U-component of the offset.
+     * @param offsetV The V-component of the offset.
+     * @param scaleU The U-component of the scale.
+     * @param scaleV The V-component of the scale.
      */
     public TextureTransform(double offsetU, double offsetV, double scaleU, double scaleV) {
         this.offset = new Vector3(offsetU, offsetV, 0.0);
@@ -68,7 +85,13 @@ public class TextureTransform {
     }
     
     /**
-     * Constructor for 2D transforms with rotation.
+     * Constructs a new {@code TextureTransform} from 2D components with rotation.
+     *
+     * @param offsetU The U-component of the offset.
+     * @param offsetV The V-component of the offset.
+     * @param scaleU The U-component of the scale.
+     * @param scaleV The V-component of the scale.
+     * @param rotation The rotation in radians.
      */
     public TextureTransform(double offsetU, double offsetV, double scaleU, double scaleV, double rotation) {
         this.offset = new Vector3(offsetU, offsetV, 0.0);
@@ -77,60 +100,82 @@ public class TextureTransform {
         this.texCoord = 0;
     }
     
-    // Getters
+    /** @return The texture coordinate offset. */
     public Vector3 getOffset() { return offset; }
+    /** @return The texture coordinate scale. */
     public Vector3 getScale() { return scale; }
+    /** @return The rotation in radians. */
     public double getRotation() { return rotation; }
+    /** @return The texture coordinate set index. */
     public int getTexCoord() { return texCoord; }
     
+    /** @return The U-component of the offset. */
     public double getOffsetU() { return offset.x; }
+    /** @return The V-component of the offset. */
     public double getOffsetV() { return offset.y; }
+    /** @return The U-component of the scale. */
     public double getScaleU() { return scale.x; }
+    /** @return The V-component of the scale. */
     public double getScaleV() { return scale.y; }
     
-    // Setters
+    /** @param offset The new texture coordinate offset. */
     public void setOffset(Vector3 offset) {
         this.offset = offset != null ? offset : Vector3.ZERO;
     }
     
+    /** @param scale The new texture coordinate scale. */
     public void setScale(Vector3 scale) {
         this.scale = scale != null ? scale : new Vector3(1.0, 1.0, 1.0);
     }
     
+    /** @param rotation The new rotation in radians. */
     public void setRotation(double rotation) {
         this.rotation = rotation;
     }
     
+    /** @param texCoord The new texture coordinate set index. */
     public void setTexCoord(int texCoord) {
         this.texCoord = Math.max(0, texCoord);
     }
     
+    /** @param u The new U-component of the offset.
+     *  @param v The new V-component of the offset.
+     */
     public void setOffset(double u, double v) {
         this.offset = new Vector3(u, v, 0.0);
     }
     
+    /** @param u The new U-component of the scale.
+     *  @param v The new V-component of the scale.
+     */
     public void setScale(double u, double v) {
         this.scale = new Vector3(u, v, 1.0);
     }
     
+    /** @param u The new U-component of the offset. */
     public void setOffsetU(double u) {
         this.offset = new Vector3(u, offset.y, offset.z);
     }
     
+    /** @param v The new V-component of the offset. */
     public void setOffsetV(double v) {
         this.offset = new Vector3(offset.x, v, offset.z);
     }
     
+    /** @param u The new U-component of the scale. */
     public void setScaleU(double u) {
         this.scale = new Vector3(u, scale.y, scale.z);
     }
     
+    /** @param v The new V-component of the scale. */
     public void setScaleV(double v) {
         this.scale = new Vector3(scale.x, v, scale.z);
     }
     
     /**
-     * Check if this is an identity transform.
+     * Checks if this transform is an identity transform (i.e., it has no effect).
+     *
+     * @return {@code true} if the transform is an identity transform, {@code false} otherwise.
      */
     public boolean isIdentity() {
         return offset.isZero() &&
@@ -140,7 +185,10 @@ public class TextureTransform {
     }
     
     /**
-     * Apply transform to UV coordinates.
+     * Applies this transform to a set of UV coordinates.
+     *
+     * @param uv The input UV coordinates.
+     * @return A new {@link Vector3} representing the transformed UV coordinates.
      */
     public Vector3 transform(Vector3 uv) {
         if (isIdentity()) {
@@ -174,7 +222,10 @@ public class TextureTransform {
     }
     
     /**
-     * Apply inverse transform to UV coordinates.
+     * Applies the inverse of this transform to a set of UV coordinates.
+     *
+     * @param uv The input UV coordinates.
+     * @return A new {@link Vector3} representing the inversely transformed UV coordinates.
      */
     public Vector3 inverseTransform(Vector3 uv) {
         if (isIdentity()) {
@@ -208,7 +259,9 @@ public class TextureTransform {
     }
     
     /**
-     * Get transformation matrix (3x3 for 2D homogeneous coordinates).
+     * Gets the 3x3 transformation matrix for this transform, suitable for 2D homogeneous coordinates.
+     *
+     * @return A 3x3 matrix representing the combined scale, rotation, and translation.
      */
     public double[][] getTransformMatrix() {
         double[][] matrix = new double[3][3];
@@ -252,7 +305,10 @@ public class TextureTransform {
     }
     
     /**
-     * Combine this transform with another.
+     * Combines this transform with another transform.
+     *
+     * @param other The other transform to combine with this one.
+     * @return A new {@code TextureTransform} representing the combined transformation.
      */
     public TextureTransform combine(TextureTransform other) {
         if (other == null || other.isIdentity()) {
@@ -272,7 +328,9 @@ public class TextureTransform {
     }
     
     /**
-     * Create inverse transform.
+     * Creates the inverse of this transform.
+     *
+     * @return A new {@code TextureTransform} representing the inverse transformation.
      */
     public TextureTransform inverse() {
         if (isIdentity()) {
@@ -292,7 +350,9 @@ public class TextureTransform {
     }
     
     /**
-     * Create LLSD representation of this transform.
+     * Converts this transform's properties into an LLSD map representation.
+     *
+     * @return A {@link Map} suitable for serialization.
      */
     public Map<String, Object> toLLSD() {
         Map<String, Object> transformData = new HashMap<>();
@@ -317,7 +377,10 @@ public class TextureTransform {
     }
     
     /**
-     * Create transform from LLSD data.
+     * Creates a {@code TextureTransform} from an LLSD map.
+     *
+     * @param data The LLSD map containing the transform data.
+     * @return A new {@code TextureTransform} instance.
      */
     @SuppressWarnings("unchecked")
     public static TextureTransform fromLLSD(Map<String, Object> data) {
@@ -356,7 +419,14 @@ public class TextureTransform {
     }
     
     /**
-     * Parse transform from Second Life texture animation format.
+     * Creates a {@code TextureTransform} from the Second Life texture animation format parameters.
+     *
+     * @param offsetU The U-component of the offset.
+     * @param offsetV The V-component of the offset.
+     * @param scaleU The U-component of the scale.
+     * @param scaleV The V-component of the scale.
+     * @param rotation The rotation in radians.
+     * @return A new {@code TextureTransform} instance.
      */
     public static TextureTransform fromSLFormat(double offsetU, double offsetV, 
                                                double scaleU, double scaleV, double rotation) {
@@ -364,7 +434,9 @@ public class TextureTransform {
     }
     
     /**
-     * Convert to Second Life texture animation format.
+     * Converts this transform to the Second Life texture animation format.
+     *
+     * @return A double array containing {@code [offsetU, offsetV, scaleU, scaleV, rotation]}.
      */
     public double[] toSLFormat() {
         return new double[]{offset.x, offset.y, scale.x, scale.y, rotation};

@@ -24,53 +24,87 @@ import java.util.UUID;
  */
 public class WindlightEnvironment {
     
-    // Sky settings
+    /** The settings for rendering the sky and atmosphere. */
     private SkySettings skySettings;
+    /** The settings for rendering water surfaces. */
     private WaterSettings waterSettings;
+    /** The direction vector of the sun. */
     private Vector3 sunDirection;
+    /** The direction vector of the moon. */
     private Vector3 moonDirection;
-    private double dayTime; // 0.0 to 1.0 (0 = midnight, 0.5 = noon)
+    /** The current time of day, normalized from 0.0 (midnight) to 1.0 (next midnight). */
+    private double dayTime;
     
-    // Environmental settings
+    /** The overall ambient light intensity. */
     private double ambient;
+    /** The density of the atmospheric fog. */
     private double fogDensity;
+    /** The color of the fog. */
     private Vector3 fogColor;
+    /** The distance at which fog starts to appear. */
     private double fogStart;
+    /** The distance at which fog becomes fully opaque. */
     private double fogEnd;
     
-    // Advanced settings
+    /** If true, a gamma correction curve is applied to the final image. */
     private boolean useGammaCurve;
+    /** The exposure level for tone mapping. */
     private double exposure;
+    /** The brightness of the stars at night. */
     private Vector3 starBrightness;
+    /** The amount of cloud coverage in the sky (0.0 to 1.0). */
     private double cloudCoverage;
+    /** The density of the clouds. */
     private double cloudDensity;
+    /** The color of the clouds. */
     private Vector3 cloudColor;
+    /** The scale of the cloud noise texture. */
     private double cloudScale;
     
     /**
-     * Sky rendering settings.
+     * A container for all settings related to rendering the sky and atmosphere.
+     * <p>
+     * This includes colors for the horizon and zenith, sun properties, haze,
+     * and atmospheric scattering parameters (Rayleigh and Mie).
      */
     public static class SkySettings {
+        /** The color of the sky at the horizon. */
         private Vector3 horizonColor;
+        /** The color of the sky at its highest point (the zenith). */
         private Vector3 zenithColor;
+        /** The color of the sun's light. */
         private Vector3 sunColor;
+        /** The base color of the ambient light. */
         private Vector3 ambientColor;
+        /** The base color of the clouds. */
         private Vector3 cloudColor;
         
+        /** The density of the atmospheric haze. */
         private double hazeDensity;
+        /** The height of the haze layer relative to the horizon. */
         private double hazeHorizon;
+        /** A multiplier for the overall density of the atmosphere. */
         private double densityMultiplier;
+        /** A multiplier for the effect of distance on atmospheric scattering. */
         private double distanceMultiplier;
         
+        /** The focus of the sun's glow effect. */
         private double sunGlowFocus;
+        /** The size of the sun's glow effect. */
         private double sunGlowSize;
+        /** The gamma correction value for the scene. */
         private double sceneGamma;
         
-        // Rayleigh and Mie scattering
+        /** The coefficients for Rayleigh scattering (for small particles like air molecules). */
         private Vector3 rayleighScattering;
+        /** The coefficients for Mie scattering (for larger particles like aerosols). */
         private Vector3 mieScattering;
+        /** The asymmetry factor for Mie scattering, controlling the direction of scattered light. */
         private double mieAsymmetry;
         
+        /**
+         * Constructs a new {@code SkySettings} object with default Second Life sky values.
+         */
         public SkySettings() {
             // Default Second Life sky settings
             this.horizonColor = new Vector3(0.25, 0.25, 0.32);
@@ -93,52 +127,86 @@ public class WindlightEnvironment {
             this.mieAsymmetry = 0.8;
         }
         
-        // Getters and setters
+        /** @return The color of the sky at the horizon. */
         public Vector3 getHorizonColor() { return horizonColor; }
+        /** @param horizonColor The new horizon color. */
         public void setHorizonColor(Vector3 horizonColor) { this.horizonColor = clampColor(horizonColor); }
         
+        /** @return The color of the sky at the zenith. */
         public Vector3 getZenithColor() { return zenithColor; }
+        /** @param zenithColor The new zenith color. */
         public void setZenithColor(Vector3 zenithColor) { this.zenithColor = clampColor(zenithColor); }
         
+        /** @return The color of the sun's light. */
         public Vector3 getSunColor() { return sunColor; }
+        /** @param sunColor The new sun color. */
         public void setSunColor(Vector3 sunColor) { this.sunColor = clampColor(sunColor); }
         
+        /** @return The base color of the ambient light. */
         public Vector3 getAmbientColor() { return ambientColor; }
+        /** @param ambientColor The new ambient color. */
         public void setAmbientColor(Vector3 ambientColor) { this.ambientColor = clampColor(ambientColor); }
         
+        /** @return The base color of the clouds. */
         public Vector3 getCloudColor() { return cloudColor; }
+        /** @param cloudColor The new cloud color. */
         public void setCloudColor(Vector3 cloudColor) { this.cloudColor = clampColor(cloudColor); }
         
+        /** @return The density of the atmospheric haze. */
         public double getHazeDensity() { return hazeDensity; }
+        /** @param hazeDensity The new haze density. */
         public void setHazeDensity(double hazeDensity) { this.hazeDensity = Math.max(0.0, hazeDensity); }
         
+        /** @return The height of the haze layer. */
         public double getHazeHorizon() { return hazeHorizon; }
+        /** @param hazeHorizon The new haze horizon. */
         public void setHazeHorizon(double hazeHorizon) { this.hazeHorizon = Math.max(0.0, Math.min(2.0, hazeHorizon)); }
         
+        /** @return The multiplier for atmospheric density. */
         public double getDensityMultiplier() { return densityMultiplier; }
+        /** @param densityMultiplier The new density multiplier. */
         public void setDensityMultiplier(double densityMultiplier) { this.densityMultiplier = Math.max(0.0, densityMultiplier); }
         
+        /** @return The multiplier for the effect of distance on scattering. */
         public double getDistanceMultiplier() { return distanceMultiplier; }
+        /** @param distanceMultiplier The new distance multiplier. */
         public void setDistanceMultiplier(double distanceMultiplier) { this.distanceMultiplier = Math.max(0.0, distanceMultiplier); }
         
+        /** @return The focus of the sun's glow. */
         public double getSunGlowFocus() { return sunGlowFocus; }
+        /** @param sunGlowFocus The new sun glow focus. */
         public void setSunGlowFocus(double sunGlowFocus) { this.sunGlowFocus = Math.max(0.0, sunGlowFocus); }
         
+        /** @return The size of the sun's glow. */
         public double getSunGlowSize() { return sunGlowSize; }
+        /** @param sunGlowSize The new sun glow size. */
         public void setSunGlowSize(double sunGlowSize) { this.sunGlowSize = Math.max(0.0, sunGlowSize); }
         
+        /** @return The gamma correction value for the scene. */
         public double getSceneGamma() { return sceneGamma; }
+        /** @param sceneGamma The new scene gamma value. */
         public void setSceneGamma(double sceneGamma) { this.sceneGamma = Math.max(0.1, Math.min(3.0, sceneGamma)); }
         
+        /** @return The Rayleigh scattering coefficients. */
         public Vector3 getRayleighScattering() { return rayleighScattering; }
+        /** @param rayleighScattering The new Rayleigh scattering coefficients. */
         public void setRayleighScattering(Vector3 rayleighScattering) { this.rayleighScattering = clampScattering(rayleighScattering); }
         
+        /** @return The Mie scattering coefficients. */
         public Vector3 getMieScattering() { return mieScattering; }
+        /** @param mieScattering The new Mie scattering coefficients. */
         public void setMieScattering(Vector3 mieScattering) { this.mieScattering = clampScattering(mieScattering); }
         
+        /** @return The asymmetry factor for Mie scattering. */
         public double getMieAsymmetry() { return mieAsymmetry; }
+        /** @param mieAsymmetry The new Mie asymmetry factor. */
         public void setMieAsymmetry(double mieAsymmetry) { this.mieAsymmetry = Math.max(-1.0, Math.min(1.0, mieAsymmetry)); }
         
+        /**
+         * Converts these sky settings into an LLSD map representation.
+         *
+         * @return A {@link Map} suitable for serialization.
+         */
         public Map<String, Object> toLLSD() {
             Map<String, Object> data = new HashMap<>();
             data.put("HorizonColor", Arrays.asList(horizonColor.x, horizonColor.y, horizonColor.z));
@@ -161,25 +229,43 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Water rendering settings.
+     * A container for all settings related to rendering water surfaces.
+     * <p>
+     * This includes colors, fog, wave normals, and Fresnel reflection properties.
      */
     public static class WaterSettings {
+        /** The base color of the water. */
         private Vector3 waterColor;
+        /** The color of the fog effect when underwater. */
         private Vector3 waterFogColor;
+        /** The density of the underwater fog. */
         private double waterFogDensity;
+        /** A modifier for the fog density when the camera is underwater. */
         private double underwaterFogModifier;
         
+        /** The scale of the water's normal map. */
         private Vector3 normalScale;
+        /** The UUID of the normal map texture for water waves. */
         private UUID normalMapTexture;
+        /** The scale of the Fresnel reflection effect. */
         private double fresnelScale;
+        /** The offset for the Fresnel reflection effect. */
         private double fresnelOffset;
+        /** The scale of the water texture when viewed from above. */
         private double scaleAbove;
+        /** The scale of the water texture when viewed from below. */
         private double scaleBelow;
         
+        /** A multiplier for the blur effect applied to reflections and refractions. */
         private double blurMultiplier;
+        /** The direction of the small waves. */
         private Vector3 littleWaveDirection;
+        /** The direction of the large waves. */
         private Vector3 bigWaveDirection;
         
+        /**
+         * Constructs a new {@code WaterSettings} object with default Second Life water values.
+         */
         public WaterSettings() {
             // Default Second Life water settings
             this.waterColor = new Vector3(0.04, 0.15, 0.20);
@@ -198,46 +284,76 @@ public class WindlightEnvironment {
             this.bigWaveDirection = new Vector3(1.0, 0.09, 0.0);
         }
         
-        // Getters and setters
+        /** @return The base color of the water. */
         public Vector3 getWaterColor() { return waterColor; }
+        /** @param waterColor The new water color. */
         public void setWaterColor(Vector3 waterColor) { this.waterColor = clampColor(waterColor); }
         
+        /** @return The color of the underwater fog. */
         public Vector3 getWaterFogColor() { return waterFogColor; }
+        /** @param waterFogColor The new underwater fog color. */
         public void setWaterFogColor(Vector3 waterFogColor) { this.waterFogColor = clampColor(waterFogColor); }
         
+        /** @return The density of the underwater fog. */
         public double getWaterFogDensity() { return waterFogDensity; }
+        /** @param waterFogDensity The new underwater fog density. */
         public void setWaterFogDensity(double waterFogDensity) { this.waterFogDensity = Math.max(0.0, waterFogDensity); }
         
+        /** @return The modifier for underwater fog. */
         public double getUnderwaterFogModifier() { return underwaterFogModifier; }
+        /** @param underwaterFogModifier The new underwater fog modifier. */
         public void setUnderwaterFogModifier(double underwaterFogModifier) { this.underwaterFogModifier = Math.max(0.0, underwaterFogModifier); }
         
+        /** @return The scale of the water's normal map. */
         public Vector3 getNormalScale() { return normalScale; }
+        /** @param normalScale The new normal map scale. */
         public void setNormalScale(Vector3 normalScale) { this.normalScale = normalScale; }
         
+        /** @return The UUID of the normal map texture for waves. */
         public UUID getNormalMapTexture() { return normalMapTexture; }
+        /** @param normalMapTexture The new normal map texture UUID. */
         public void setNormalMapTexture(UUID normalMapTexture) { this.normalMapTexture = normalMapTexture; }
         
+        /** @return The scale of the Fresnel reflection effect. */
         public double getFresnelScale() { return fresnelScale; }
+        /** @param fresnelScale The new Fresnel scale. */
         public void setFresnelScale(double fresnelScale) { this.fresnelScale = Math.max(0.0, Math.min(1.0, fresnelScale)); }
         
+        /** @return The offset for the Fresnel reflection effect. */
         public double getFresnelOffset() { return fresnelOffset; }
+        /** @param fresnelOffset The new Fresnel offset. */
         public void setFresnelOffset(double fresnelOffset) { this.fresnelOffset = Math.max(0.0, Math.min(1.0, fresnelOffset)); }
         
+        /** @return The scale of the water texture when viewed from above. */
         public double getScaleAbove() { return scaleAbove; }
+        /** @param scaleAbove The new scale for above-water viewing. */
         public void setScaleAbove(double scaleAbove) { this.scaleAbove = Math.max(0.0, scaleAbove); }
         
+        /** @return The scale of the water texture when viewed from below. */
         public double getScaleBelow() { return scaleBelow; }
+        /** @param scaleBelow The new scale for below-water viewing. */
         public void setScaleBelow(double scaleBelow) { this.scaleBelow = Math.max(0.0, scaleBelow); }
         
+        /** @return The multiplier for reflection/refraction blur. */
         public double getBlurMultiplier() { return blurMultiplier; }
+        /** @param blurMultiplier The new blur multiplier. */
         public void setBlurMultiplier(double blurMultiplier) { this.blurMultiplier = Math.max(0.0, blurMultiplier); }
         
+        /** @return The direction of the small waves. */
         public Vector3 getLittleWaveDirection() { return littleWaveDirection; }
+        /** @param littleWaveDirection The new direction for small waves. */
         public void setLittleWaveDirection(Vector3 littleWaveDirection) { this.littleWaveDirection = littleWaveDirection; }
         
+        /** @return The direction of the large waves. */
         public Vector3 getBigWaveDirection() { return bigWaveDirection; }
+        /** @param bigWaveDirection The new direction for large waves. */
         public void setBigWaveDirection(Vector3 bigWaveDirection) { this.bigWaveDirection = bigWaveDirection; }
         
+        /**
+         * Converts these water settings into an LLSD map representation.
+         *
+         * @return A {@link Map} suitable for serialization.
+         */
         public Map<String, Object> toLLSD() {
             Map<String, Object> data = new HashMap<>();
             data.put("WaterColor", Arrays.asList(waterColor.x, waterColor.y, waterColor.z));
@@ -258,7 +374,8 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Default constructor with standard Windlight settings.
+     * Constructs a new {@code WindlightEnvironment} with default settings that
+     * represent a standard Second Life day-cycle environment.
      */
     public WindlightEnvironment() {
         this.skySettings = new SkySettings();
@@ -282,97 +399,129 @@ public class WindlightEnvironment {
         this.cloudScale = 0.42;
     }
     
-    // Getters
+    /** @return The current sky settings. */
     public SkySettings getSkySettings() { return skySettings; }
+    /** @return The current water settings. */
     public WaterSettings getWaterSettings() { return waterSettings; }
+    /** @return The direction vector of the sun. */
     public Vector3 getSunDirection() { return sunDirection; }
+    /** @return The direction vector of the moon. */
     public Vector3 getMoonDirection() { return moonDirection; }
+    /** @return The current time of day (0.0 to 1.0). */
     public double getDayTime() { return dayTime; }
+    /** @return The overall ambient light intensity. */
     public double getAmbient() { return ambient; }
+    /** @return The density of the atmospheric fog. */
     public double getFogDensity() { return fogDensity; }
+    /** @return The color of the fog. */
     public Vector3 getFogColor() { return fogColor; }
+    /** @return The distance at which fog starts. */
     public double getFogStart() { return fogStart; }
+    /** @return The distance at which fog is fully opaque. */
     public double getFogEnd() { return fogEnd; }
+    /** @return True if gamma correction is enabled. */
     public boolean isUseGammaCurve() { return useGammaCurve; }
+    /** @return The exposure level for tone mapping. */
     public double getExposure() { return exposure; }
+    /** @return The brightness of the stars. */
     public Vector3 getStarBrightness() { return starBrightness; }
+    /** @return The amount of cloud coverage. */
     public double getCloudCoverage() { return cloudCoverage; }
+    /** @return The density of the clouds. */
     public double getCloudDensity() { return cloudDensity; }
+    /** @return The color of the clouds. */
     public Vector3 getCloudColor() { return cloudColor; }
+    /** @return The scale of the cloud noise texture. */
     public double getCloudScale() { return cloudScale; }
     
-    // Setters
+    /** @param skySettings The new sky settings. */
     public void setSkySettings(SkySettings skySettings) {
         this.skySettings = skySettings != null ? skySettings : new SkySettings();
     }
     
+    /** @param waterSettings The new water settings. */
     public void setWaterSettings(WaterSettings waterSettings) {
         this.waterSettings = waterSettings != null ? waterSettings : new WaterSettings();
     }
     
+    /** @param sunDirection The new direction vector for the sun. */
     public void setSunDirection(Vector3 sunDirection) {
         this.sunDirection = sunDirection != null ? sunDirection.normalize() : new Vector3(0.0, 0.707, 0.707);
     }
     
+    /** @param moonDirection The new direction vector for the moon. */
     public void setMoonDirection(Vector3 moonDirection) {
         this.moonDirection = moonDirection != null ? moonDirection.normalize() : new Vector3(0.0, -0.707, 0.707);
     }
     
+    /** @param dayTime The new time of day, clamped to the range [0, 1]. */
     public void setDayTime(double dayTime) {
         this.dayTime = Math.max(0.0, Math.min(1.0, dayTime));
         updateSunMoonPositions();
     }
     
+    /** @param ambient The new ambient light intensity, clamped to the range [0, 1]. */
     public void setAmbient(double ambient) {
         this.ambient = Math.max(0.0, Math.min(1.0, ambient));
     }
     
+    /** @param fogDensity The new fog density. */
     public void setFogDensity(double fogDensity) {
         this.fogDensity = Math.max(0.0, fogDensity);
     }
     
+    /** @param fogColor The new fog color. */
     public void setFogColor(Vector3 fogColor) {
         this.fogColor = clampColor(fogColor);
     }
     
+    /** @param fogStart The new fog start distance. */
     public void setFogStart(double fogStart) {
         this.fogStart = Math.max(0.0, fogStart);
     }
     
+    /** @param fogEnd The new fog end distance. */
     public void setFogEnd(double fogEnd) {
         this.fogEnd = Math.max(fogStart, fogEnd);
     }
     
+    /** @param useGammaCurve The new gamma correction state. */
     public void setUseGammaCurve(boolean useGammaCurve) {
         this.useGammaCurve = useGammaCurve;
     }
     
+    /** @param exposure The new exposure level. */
     public void setExposure(double exposure) {
         this.exposure = Math.max(0.1, Math.min(10.0, exposure));
     }
     
+    /** @param starBrightness The new star brightness. */
     public void setStarBrightness(Vector3 starBrightness) {
         this.starBrightness = starBrightness != null ? starBrightness : Vector3.ZERO;
     }
     
+    /** @param cloudCoverage The new cloud coverage, clamped to the range [0, 1]. */
     public void setCloudCoverage(double cloudCoverage) {
         this.cloudCoverage = Math.max(0.0, Math.min(1.0, cloudCoverage));
     }
     
+    /** @param cloudDensity The new cloud density. */
     public void setCloudDensity(double cloudDensity) {
         this.cloudDensity = Math.max(0.0, cloudDensity);
     }
     
+    /** @param cloudColor The new cloud color. */
     public void setCloudColor(Vector3 cloudColor) {
         this.cloudColor = clampColor(cloudColor);
     }
     
+    /** @param cloudScale The new cloud scale. */
     public void setCloudScale(double cloudScale) {
         this.cloudScale = Math.max(0.0, cloudScale);
     }
     
     /**
-     * Update sun and moon positions based on day time.
+     * Updates the sun and moon positions based on the current day time.
      */
     public void updateSunMoonPositions() {
         // Convert day time to radians (0.0 = midnight, 0.5 = noon)
@@ -388,7 +537,9 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Get current light direction (sun during day, moon during night).
+     * Gets the direction of the dominant light source (sun or moon) based on the time of day.
+     *
+     * @return The direction vector of the current dominant light.
      */
     public Vector3 getCurrentLightDirection() {
         double sunInfluence = Math.max(0.0, sunDirection.y); // Y is up
@@ -400,7 +551,9 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Get current light color based on time of day.
+     * Gets the color of the dominant light source, adjusted for its elevation.
+     *
+     * @return The color of the current dominant light.
      */
     public Vector3 getCurrentLightColor() {
         double sunInfluence = Math.max(0.0, sunDirection.y);
@@ -416,7 +569,9 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Get current ambient light based on atmospheric scattering.
+     * Gets the current ambient light color, calculated from atmospheric scattering.
+     *
+     * @return The calculated ambient light color.
      */
     public Vector3 getCurrentAmbientColor() {
         Vector3 ambientBase = skySettings.getAmbientColor();
@@ -428,7 +583,10 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Calculate atmospheric perspective color for a given distance.
+     * Calculates the color of the atmospheric fog at a given distance.
+     *
+     * @param distance The distance from the camera.
+     * @return The calculated atmospheric color.
      */
     public Vector3 getAtmosphericColor(double distance) {
         double fogFactor = 1.0 - Math.exp(-distance * fogDensity / 1000.0);
@@ -445,7 +603,9 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Get effective visibility distance based on atmospheric conditions.
+     * Gets the effective visibility distance based on the current atmospheric conditions.
+     *
+     * @return The visibility distance in meters.
      */
     public double getVisibilityDistance() {
         // Base visibility affected by fog density and haze
@@ -455,7 +615,9 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Create LLSD representation of the environment.
+     * Converts this environment's settings into an LLSD map representation.
+     *
+     * @return A {@link Map} suitable for serialization.
      */
     public Map<String, Object> toLLSD() {
         Map<String, Object> envData = new HashMap<>();
@@ -486,7 +648,10 @@ public class WindlightEnvironment {
     }
     
     /**
-     * Create environment from LLSD data.
+     * Creates a {@code WindlightEnvironment} from an LLSD map.
+     *
+     * @param data The LLSD map containing the environment data.
+     * @return A new {@code WindlightEnvironment} instance.
      */
     @SuppressWarnings("unchecked")
     public static WindlightEnvironment fromLLSD(Map<String, Object> data) {
